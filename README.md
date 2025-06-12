@@ -22,6 +22,10 @@ This repository manages a SLURM pipeline for studying dihadron partial waves at 
 
 The program is intended to be used on Jefferson Lab's `ifarm` , and run using their cluster manager `slurm`. 
 
+```bash
+./run_project.rb [--append] [--maxEntries N] [--maxFiles M] PROJECT_NAME CONFIG1 [CONFIG2 ...]
+```
+
 ## Contact
 
 Gregory Matousek (gamatousek@gmail.com)
