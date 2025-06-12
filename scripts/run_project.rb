@@ -57,6 +57,7 @@ unless options[:append]
   end
 end
 
+# locate all merged_cuts files
 base_dir    = File.join(
   "/volatile/clas12/users/gmat/clas12analysis.sidis.data",
   "clas12_dihadrons",
@@ -73,18 +74,25 @@ end
 
 config_files.each do |cfg|
   next unless File.file?(cfg)
-  name = File.basename(cfg, File.extname(cfg))
-  outc = File.join(out_root, "config_#{name}")
+
+  config_name = File.basename(cfg, File.extname(cfg))
+  outc        = File.join(out_root, "config_#{config_name}")
 
   FileUtils.mkdir_p(outc)
   FileUtils.cp(cfg, outc) unless options[:append] && Dir.exist?(outc)
   File.write(File.join(outc, "volatile_project.txt"), VOLATILE_PROJECT)
 
-  # possibly limit the number of files processed
+  # 1) filter out pi0_pi0
+  valid_files = merged_files.reject do |fp|
+    File.basename(File.dirname(fp)) == "pi0_pi0"
+  end
+  skipped = merged_files.size - valid_files.size
+
+  # 2) apply maxFiles to valid list
   files_to_use = if options[:maxFiles] && options[:maxFiles] > 0
-                   merged_files.first(options[:maxFiles])
+                   valid_files.first(options[:maxFiles])
                  else
-                   merged_files
+                   valid_files
                  end
 
   files_to_use.each do |fp|
@@ -100,7 +108,7 @@ config_files.each do |cfg|
     File.write(File.join(td, "tree_info.yaml"), info.to_yaml)
   end
 
-  puts "Set up: #{outc}  (wrote #{files_to_use.size} tree_info.yaml files)"
+  puts "Set up: #{outc}  (wrote #{files_to_use.size} tree_info.yaml files, skipped #{skipped} pi0_pi0 files)"
 end
 
 puts "\nDirectory structure under #{out_root}:"

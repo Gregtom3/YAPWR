@@ -12,7 +12,8 @@ require 'fileutils'
 # For each tree_info.yaml it will:
 #  1) Read the original tfile path and ttree name
 #  2) Build the path to the *filtered* ROOT file in that same leaf directory
-#  3) Invoke purityBinning on that filtered file and tree
+#  3) Create module-out___purityBinning/ there
+#  4) Invoke purityBinning on that filtered file, tree, pair, and output_dir
 
 project_name = ARGV.fetch(0) {
   STDERR.puts "Usage: #{$0} PROJECT_NAME"
@@ -34,18 +35,20 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
     leaf_dir   = File.dirname(info_path)
     pair       = File.basename(File.dirname(leaf_dir))
 
-    # derive the filtered file path by reusing the basename
+    # 2) Derive and check the filtered file
     filtered_file = File.join(leaf_dir, File.basename(orig_tfile))
     unless File.exist?(filtered_file)
       STDERR.puts "[module___purityBinning] WARNING: filtered file not found: #{filtered_file}"
       next
     end
 
-    # build the ROOT command exactly as specified
-    root_cmd = %W[
-      root -l -q
-      src/purityBinning.C\\(\\\"#{filtered_file}\\\",\\\"#{ttree}\\\",\\\"#{pair}\\\"\\)
-    ].join(' ')
+    # 3) Create the module-out directory
+    output_dir = File.join(leaf_dir, "module-out___purityBinning")
+    FileUtils.mkdir_p(output_dir)
+
+    # 4) Build the ROOT command
+    #    purityBinning(in, tree, pair, outDir)
+    root_cmd = "root -l -q src/purityBinning.C\\(\\\"#{filtered_file}\\\",\\\"#{ttree}\\\",\\\"#{pair}\\\",\\\"#{output_dir}\\\"\\)"
 
     puts "[module___purityBinning] Running: #{root_cmd}"
     system(root_cmd) or
