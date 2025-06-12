@@ -7,15 +7,19 @@ VOLATILE_PROJECT    = "pipi0-paper-v5-pass2"
 VOLATILE_SUFFIX     = "*merged_cuts_noPmin*"
 VOLATILE_TREE_NAME  = "dihadron_cuts_noPmin"
 
-options = { append: false }
+options = { append: false, maxEntries: nil }
 OptionParser.new do |opts|
-  opts.banner = "Usage: #{$0} [--append] PROJECT_NAME CONFIG1 [CONFIG2 ...]"
+  opts.banner = "Usage: #{$0} [--append] [--maxEntries N] PROJECT_NAME CONFIG1 [CONFIG2 ...]"
 
   opts.on("--append", "Do not overwrite existing out/<PROJECT>; skip filterTree step") do
     options[:append] = true
   end
 
-  opts.on("-h", "--help", "Prints this help") do
+  opts.on("--maxEntries N", Integer, "Only copy first N entries (pass to filterTree)") do |n|
+    options[:maxEntries] = n
+  end
+
+  opts.on("-h","--help","Prints this help") do
     puts opts
     exit
   end
@@ -23,22 +27,20 @@ end.parse!
 
 if ARGV.size < 2
   STDERR.puts "ERROR: You must supply a PROJECT_NAME and at least one CONFIG file"
-  STDERR.puts "Usage: #{$0} [--append] PROJECT_NAME CONFIG1 [CONFIG2 ...]"
+  STDERR.puts "Usage: #{$0} [--append] [--maxEntries N] PROJECT_NAME CONFIG1 [CONFIG2 ...]"
   exit 1
 end
 
 project_name = ARGV.shift
 config_files  = ARGV
 
-# top‐level output dir
 out_root = File.join("out", project_name)
 
 unless options[:append]
-  # prompt overwrite if out/<PROJECT_NAME> exists
   if Dir.exist?(out_root)
     print "Directory '#{out_root}' already exists. Overwrite everything? [y/N]: "
-    answer = STDIN.gets.chomp.downcase
-    unless %w[y yes].include?(answer)
+    ans = STDIN.gets.chomp.downcase
+    unless %w[y yes].include?(ans)
       puts "Aborting."
       exit 0
     end
@@ -46,7 +48,6 @@ unless options[:append]
   end
 end
 
-# find all merged‐cuts files under the volatile project
 base_dir    = File.join(
   "/volatile/clas12/users/gmat/clas12analysis.sidis.data",
   "clas12_dihadrons",
@@ -61,38 +62,39 @@ if merged_files.empty?
   exit 1
 end
 
-# process each config: create dirs, copy configs, write tree_info.yaml
-config_files.each do |config_path|
-  next unless File.file?(config_path)
+config_files.each do |cfg|
+  next unless File.file?(cfg)
+  name = File.basename(cfg, File.extname(cfg))
+  outc = File.join(out_root, "config_#{name}")
 
-  config_name = File.basename(config_path, File.extname(config_path))
-  out_base    = File.join(out_root, "config_#{config_name}")
+  FileUtils.mkdir_p(outc)
+  FileUtils.cp(cfg, outc) unless options[:append] && Dir.exist?(outc)
+  File.write(File.join(outc, "volatile_project.txt"), VOLATILE_PROJECT)
 
-  FileUtils.mkdir_p(out_base)
-  FileUtils.cp(config_path, out_base) unless options[:append] && Dir.exist?(out_base)
-  File.write(File.join(out_base, "volatile_project.txt"), VOLATILE_PROJECT)
+  merged_files.each do |fp|
+    pair = File.basename(File.dirname(fp))
+    tag  = File.basename(fp).split('_merged_cuts_noPmin').first
+    td   = File.join(outc, pair, tag)
+    FileUtils.mkdir_p(td)
 
-  merged_files.each do |filepath|
-    pair = File.basename(File.dirname(filepath))
-    tag  = File.basename(filepath).split('_merged_cuts_noPmin').first
-    target_dir = File.join(out_base, pair, tag)
-    FileUtils.mkdir_p(target_dir)
-
-    info = { 'tfile' => File.absolute_path(filepath),
-             'ttree' => VOLATILE_TREE_NAME }
-    File.write(File.join(target_dir, "tree_info.yaml"), info.to_yaml)
+    info = {
+      'tfile' => File.absolute_path(fp),
+      'ttree' => VOLATILE_TREE_NAME
+    }
+    File.write(File.join(td, "tree_info.yaml"), info.to_yaml)
   end
 
-  puts "Set up: #{out_base}"
+  puts "Set up: #{outc}"
 end
 
-# print the directory structure
 puts "\nDirectory structure under #{out_root}:"
 system("tree", out_root)
 
 unless options[:append]
-  puts "\nInvoking module___filterTree.rb for project '#{project_name}'..."
-  unless system("ruby", "./scripts/modules/module___filterTree.rb", project_name)
+  args = [project_name]
+  args << options[:maxEntries].to_s if options[:maxEntries]
+  puts "\n=> Invoking module___filterTree.rb: PROJECT=#{project_name} maxEntries=#{options[:maxEntries]||'all'}"
+  unless system("ruby", "./scripts/modules/module___filterTree.rb", *args)
     STDERR.puts "ERROR: module___filterTree.rb failed"
     exit 1
   end

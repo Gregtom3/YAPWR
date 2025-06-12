@@ -3,30 +3,13 @@ require 'fileutils'
 require 'yaml'
 
 # module___filterTree.rb
-#
-# Usage:
-#   ruby module___filterTree.rb PROJECT_NAME
-#
-# Expects an "out/PROJECT_NAME" tree structured as:
-#   out/PROJECT_NAME/
-#     config_<CONFIG_NAME>/
-#       <original_config>.yml
-#       volatile_project.txt
-#       <pair>/
-#         <tag>/
-#           tree_info.yaml
-#
-# For each tree_info.yaml, reads:
-#   tfile: /abs/path/to/input.root
-#   ttree: dihadron_cuts_noPmin
-#
-# and invokes:
-#   root -l -b -q ".L src/filterTree.C+; filterTree(tfile,ttree,config_path,pair,output_dir);"
+# Usage: ruby module___filterTree.rb PROJECT_NAME [maxEntries]
 
 project_name = ARGV.fetch(0) do
-  STDERR.puts "Usage: #{$0} PROJECT_NAME"
+  STDERR.puts "Usage: #{$0} PROJECT_NAME [maxEntries]"
   exit 1
 end
+max_entries = ARGV[1] ? ARGV[1].to_i : nil
 
 out_root = File.join("out", project_name)
 unless Dir.exist?(out_root)
@@ -35,37 +18,32 @@ unless Dir.exist?(out_root)
 end
 
 Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
-  # find the original config file in the top of this dir
-  config_file = Dir.glob(File.join(config_dir, "*.yaml")).
-                  reject { |f| File.basename(f) == "tree_info.yaml" }.first
-  unless config_file
+  cfg = Dir.glob(File.join(config_dir, "*.yaml")).reject { |f| f.end_with?("tree_info.yaml") }.first
+  unless cfg
     STDERR.puts "WARNING: no config .yaml in #{config_dir}, skipping"
     next
   end
 
   puts "\n== Processing #{File.basename(config_dir)} =="
 
-  # for every tree_info.yaml in the subtree
   Dir.glob(File.join(config_dir, "**", "tree_info.yaml")).sort.each do |info_path|
-    info = YAML.load_file(info_path)
+    info  = YAML.load_file(info_path)
     tfile = info.fetch("tfile")
     ttree = info.fetch("ttree")
 
-    # derive pair and tag from directory structure
-    leaf_dir = File.dirname(info_path)
-    tag      = File.basename(leaf_dir)
-    pair     = File.basename(File.dirname(leaf_dir))
+    leaf    = File.dirname(info_path)
+    tag     = File.basename(leaf)
+    pair    = File.basename(File.dirname(leaf))
+    outdir  = leaf
 
-    # prepare the output directory for filterTree
-    output_dir = leaf_dir
-
-    # build the ROOT command
-    root_cmd = "root -l src/filterTree.C\\(\\\"#{tfile}\\\",\\\"#{ttree}\\\",\\\"#{config_file}\\\",\\\"#{pair}\\\",\\\"#{output_dir}\\\"\\)"
+    entry_arg = max_entries && max_entries > 0 ? max_entries : -1
     
-    puts "Running filterTree on #{tfile} (tree=#{ttree}) -> #{output_dir}"
-    puts root_cmd
-    puts "\n"
-    #system("root", "-l", "-b", "-q", root_cmd) or
-    #  STDERR.puts("ERROR: filterTree failed for #{info_path}")
+    # build the ROOT command, inserting entry_arg at the end
+    root_cmd = "root -l -q src/filterTree.C\\(\\\"#{tfile}\\\",\\\"#{ttree}\\\",\\\"#{cfg}\\\",\\\"#{pair}\\\",\\\"#{outdir}\\\",#{entry_arg}\\)"
+    
+    puts "Running filterTree on #{tfile} (tree=#{ttree}) -> #{outdir}  [maxEntries=#{entry_arg}]"
+      
+    system(root_cmd) or
+      STDERR.puts("ERROR: filterTree failed for #{info_path}")
   end
 end

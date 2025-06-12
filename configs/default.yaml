@@ -13,3 +13,6 @@ piminus_piminus:
 piminus_pi0:
   cuts:
     - "x>-9999"
+pi0_pi0:
+  cuts:
+    - "x>-9999"

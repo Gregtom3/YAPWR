@@ -9,7 +9,8 @@ void filterTree(const char* inputPath,
                 const char* treeName,
                 const char* configPath,
                 const char* pairName,
-                const char* outputDir)
+                const char* outputDir,
+                Int_t       maxEntries = -1)
 {
     // 1) Read YAML
     YAML::Node cfg = YAML::LoadFile(configPath);
@@ -33,7 +34,7 @@ void filterTree(const char* inputPath,
     outF->cd();                 // <-- make this file the current directory
 
     // 4) Now CopyTree() will create the new TTree in outF
-    TTree *outT = inT->CopyTree(selection.c_str());
+    TTree *outT = inT->CopyTree(selection.c_str(),"",maxEntries);
     outT->SetName(treeName);
 
     // 5) Write and close
