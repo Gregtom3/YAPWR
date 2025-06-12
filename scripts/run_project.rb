@@ -7,9 +7,14 @@ VOLATILE_PROJECT    = "pipi0-paper-v5-pass2"
 VOLATILE_SUFFIX     = "*merged_cuts_noPmin*"
 VOLATILE_TREE_NAME  = "dihadron_cuts_noPmin"
 
-options = { append: false, maxEntries: nil }
+options = { append: false, maxEntries: nil, maxFiles: nil }
 OptionParser.new do |opts|
-  opts.banner = "Usage: #{$0} [--append] [--maxEntries N] PROJECT_NAME CONFIG1 [CONFIG2 ...]"
+  opts.banner = <<~USAGE
+    Usage: #{$0} [--append] [--maxEntries N] [--maxFiles M] PROJECT_NAME CONFIG1 [CONFIG2 ...]
+      --append           Do not overwrite existing out/<PROJECT>; skip filterTree step
+      --maxEntries N     Only copy first N entries (pass to filterTree)
+      --maxFiles M       Only generate M tree_info.yaml files per config
+  USAGE
 
   opts.on("--append", "Do not overwrite existing out/<PROJECT>; skip filterTree step") do
     options[:append] = true
@@ -17,6 +22,10 @@ OptionParser.new do |opts|
 
   opts.on("--maxEntries N", Integer, "Only copy first N entries (pass to filterTree)") do |n|
     options[:maxEntries] = n
+  end
+
+  opts.on("--maxFiles M", Integer, "Only generate M tree_info.yaml files per config") do |m|
+    options[:maxFiles] = m
   end
 
   opts.on("-h","--help","Prints this help") do
@@ -27,7 +36,7 @@ end.parse!
 
 if ARGV.size < 2
   STDERR.puts "ERROR: You must supply a PROJECT_NAME and at least one CONFIG file"
-  STDERR.puts "Usage: #{$0} [--append] [--maxEntries N] PROJECT_NAME CONFIG1 [CONFIG2 ...]"
+  STDERR.puts "Usage: #{$0} [--append] [--maxEntries N] [--maxFiles M] PROJECT_NAME CONFIG1 [CONFIG2 ...]"
   exit 1
 end
 
@@ -71,7 +80,14 @@ config_files.each do |cfg|
   FileUtils.cp(cfg, outc) unless options[:append] && Dir.exist?(outc)
   File.write(File.join(outc, "volatile_project.txt"), VOLATILE_PROJECT)
 
-  merged_files.each do |fp|
+  # possibly limit the number of files processed
+  files_to_use = if options[:maxFiles] && options[:maxFiles] > 0
+                   merged_files.first(options[:maxFiles])
+                 else
+                   merged_files
+                 end
+
+  files_to_use.each do |fp|
     pair = File.basename(File.dirname(fp))
     tag  = File.basename(fp).split('_merged_cuts_noPmin').first
     td   = File.join(outc, pair, tag)
@@ -84,12 +100,15 @@ config_files.each do |cfg|
     File.write(File.join(td, "tree_info.yaml"), info.to_yaml)
   end
 
-  puts "Set up: #{outc}"
+  puts "Set up: #{outc}  (wrote #{files_to_use.size} tree_info.yaml files)"
 end
 
 puts "\nDirectory structure under #{out_root}:"
 system("tree", out_root)
 
+##############################################################################################
+# FILTERING TTREES
+##############################################################################################
 unless options[:append]
   args = [project_name]
   args << options[:maxEntries].to_s if options[:maxEntries]
@@ -98,4 +117,13 @@ unless options[:append]
     STDERR.puts "ERROR: module___filterTree.rb failed"
     exit 1
   end
+end
+
+##############################################################################################
+# RUN ALL FURTHER MODULES
+##############################################################################################
+puts "\n=> Invoking module___purityBinning.rb for project '#{project_name}'..."
+unless system("ruby", "./scripts/modules/module___purityBinning.rb", project_name)
+  STDERR.puts "ERROR: module___purityBinning.rb failed"
+  exit 1
 end
