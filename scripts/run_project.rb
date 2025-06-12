@@ -10,7 +10,7 @@ VOLATILE_TREE_NAME = "dihadron_cuts_noPmin"
 options = { append: false, maxEntries: nil, maxFiles: nil }
 OptionParser.new do |opts|
   opts.banner = <<~USAGE
-    Usage: #{$0} [--append] [--maxEntries N] [--maxFiles M] RUNCARD.yaml PROJECT_NAME CONFIG1 [CONFIG2 ...]
+    Usage: #{$0} [--append] [--maxEntries N] [--maxFiles M] PROJECT_NAME RUNCARD CONFIG1 [CONFIG2 ...]
       --append           Do not overwrite existing out/<PROJECT>; skip filterTree step
       --maxEntries N     Only copy first N entries (pass to filterTree)
       --maxFiles M       Only generate M tree_info.yaml files per config
@@ -35,10 +35,12 @@ OptionParser.new do |opts|
 end.parse!
 
 if ARGV.size < 3
-  STDERR.puts "ERROR: You must supply a RUNCARD, PROJECT_NAME, and at least one CONFIG file"
-  STDERR.puts "Usage: #{$0} [--append] [--maxEntries N] [--maxFiles M] RUNCARD.yaml PROJECT_NAME CONFIG1 [CONFIG2 ...]"
+  STDERR.puts "ERROR: You must supply a PROJECT_NAME, RUNCARD and at least one CONFIG file"
+  STDERR.puts "Usage: #{$0} [--append] [--maxEntries N] [--maxFiles M] PROJECT_NAME RUNCARD CONFIG1 [CONFIG2 ...]"
   exit 1
 end
+
+project_name = ARGV.shift
 
 runcard_path = ARGV.shift
 unless File.file?(runcard_path)
@@ -56,7 +58,7 @@ unless modules.is_a?(Array) && modules.all?{|m| m.is_a?(String)}
   exit 1
 end
 
-project_name = ARGV.shift
+
 config_files = ARGV
 
 # === SETUP output directories & tree_info.yaml ===
