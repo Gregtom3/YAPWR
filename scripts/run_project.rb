@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# coding: utf-8
 require 'optparse'
 require 'fileutils'
 require 'yaml'
@@ -137,6 +138,11 @@ modules.each do |mod|
     cmd = ["ruby", "./scripts/modules/module___asymmetry.rb", project_name]
     puts "\n=> asymmetry: #{cmd.join(' ')}"
     system(*cmd) or abort("asymmetry failed")
+
+  when 'kinematicBins'
+    cmd = ["ruby", "./scripts/modules/module___kinematicBins.rb", project_name]
+    puts "\n=> kinematicBins: #{cmd.join(' ')}"
+    system(*cmd) or abort("kinematicBins failed")
 
   else
     STDERR.puts "WARNING: unknown module '#{mod}' in runcard, skipping"
