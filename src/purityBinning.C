@@ -199,7 +199,8 @@ void purityBinning(const char* inputPath,
       t->GetEntry(i);
       vph.push_back(ph); vpr.push_back(pr); vm2.push_back(m2);
   }
-
+    
+  t->SetBranchStatus("*", 1);
   // the grids we want
   const std::vector<std::pair<int,int>> grids={{1,1},{3,3},{5,5},{8,8},{12,12}};
 

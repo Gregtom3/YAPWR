@@ -2,17 +2,15 @@
 require 'yaml'
 require 'fileutils'
 
-# module___asymmetry.rb
+# module___asymmetryPW.rb
 #
 # Usage:
-#   ruby module___asymmetry.rb PROJECT_NAME
+#   ruby module___asymmetryPW.rb PROJECT_NAME
 #
-# Traverses:
-#   out/PROJECT_NAME/config_<CONFIG>/.../<pair>/<tag>/tree_info.yaml
-# For each tree_info.yaml it will:
-#  1) Read the original tfile path and ttree name
-#  2) Derive the filtered ROOT file path in that leaf dir
-#  3) Invoke the asymmetry macro on it
+# For each tree_info.yaml under out/PROJECT_NAME/config_*/…:
+#  - derive filtered file path
+#  - mkdir module-out___asymmetryPW
+#  - call asymmetry macro with that outputDir
 
 project_name = ARGV.fetch(0) {
   STDERR.puts "Usage: #{$0} PROJECT_NAME"
@@ -31,23 +29,24 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
     orig_tfile = info.fetch("tfile")
     ttree      = info.fetch("ttree")
 
-    leaf_dir      = File.dirname(info_path)
-    pair          = File.basename(File.dirname(leaf_dir))
-    filtered_file = File.join(leaf_dir, File.basename(orig_tfile))
-
-    unless File.exist?(filtered_file)
-      STDERR.puts "[module___asymmetry] WARNING: filtered file not found: #{filtered_file}"
+    leaf = File.dirname(info_path)
+    pair = File.basename(File.dirname(leaf))
+    filtered = File.join(leaf, File.basename(orig_tfile))
+    unless File.exist?(filtered)
+      STDERR.puts "[module___asymmetryPW] WARNING: no filtered file: #{filtered}"
       next
     end
 
-    # call the asymmetry macro
-    root_cmd = [
-      "root", "-l", "-q",
-      "src/asymmetry.C\\(\\\"#{filtered_file}\\\",\\\"#{ttree}\\\",\\\"#{pair}\\\"\\)"
-    ].join(' ')
+    # make module output dir
+    mod_out = File.join(leaf, "module-out___asymmetryPW")
+    FileUtils.mkdir_p(mod_out)
 
-    puts "[module___asymmetry] Running: #{root_cmd}"
-    system(root_cmd) or
-      STDERR.puts "[module___asymmetry] ERROR: asymmetry failed for #{info_path}"
+    cmd = [
+      "root", "-l", "-q",
+      "src/asymmetry.C\\(\\\"#{filtered}\\\",\\\"#{ttree}\\\",\\\"#{pair}\\\",\\\"#{mod_out}\\\"\\)"
+    ].join(' ')
+    puts "[module___asymmetry] Running: #{cmd}"
+    system(cmd) or
+      STDERR.puts("[module___asymmetryPW] ERROR for #{info_path}")
   end
 end
