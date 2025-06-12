@@ -1,0 +1,15 @@
+piplus_piplus:
+  cuts:
+    - "x>-9999"
+piplus_pi0:
+  cuts:
+    - "x>-9999"
+piplus_piminus:
+  cuts:
+    - "x>-9999"
+piminus_piminus:
+  cuts:
+    - "x>-9999"
+piminus_pi0:
+  cuts:
+    - "x>-9999"
