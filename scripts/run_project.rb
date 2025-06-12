@@ -3,14 +3,14 @@ require 'optparse'
 require 'fileutils'
 require 'yaml'
 
-VOLATILE_PROJECT    = "pipi0-paper-v5-pass2"
-VOLATILE_SUFFIX     = "*merged_cuts_noPmin*"
-VOLATILE_TREE_NAME  = "dihadron_cuts_noPmin"
+VOLATILE_PROJECT   = "pipi0-paper-v5-pass2"
+VOLATILE_SUFFIX    = "*merged_cuts_noPmin*"
+VOLATILE_TREE_NAME = "dihadron_cuts_noPmin"
 
 options = { append: false, maxEntries: nil, maxFiles: nil }
 OptionParser.new do |opts|
   opts.banner = <<~USAGE
-    Usage: #{$0} [--append] [--maxEntries N] [--maxFiles M] PROJECT_NAME CONFIG1 [CONFIG2 ...]
+    Usage: #{$0} [--append] [--maxEntries N] [--maxFiles M] RUNCARD.yaml PROJECT_NAME CONFIG1 [CONFIG2 ...]
       --append           Do not overwrite existing out/<PROJECT>; skip filterTree step
       --maxEntries N     Only copy first N entries (pass to filterTree)
       --maxFiles M       Only generate M tree_info.yaml files per config
@@ -34,30 +34,42 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-if ARGV.size < 2
-  STDERR.puts "ERROR: You must supply a PROJECT_NAME and at least one CONFIG file"
-  STDERR.puts "Usage: #{$0} [--append] [--maxEntries N] [--maxFiles M] PROJECT_NAME CONFIG1 [CONFIG2 ...]"
+if ARGV.size < 3
+  STDERR.puts "ERROR: You must supply a RUNCARD, PROJECT_NAME, and at least one CONFIG file"
+  STDERR.puts "Usage: #{$0} [--append] [--maxEntries N] [--maxFiles M] RUNCARD.yaml PROJECT_NAME CONFIG1 [CONFIG2 ...]"
+  exit 1
+end
+
+runcard_path = ARGV.shift
+unless File.file?(runcard_path)
+  STDERR.puts "ERROR: runcard not found: #{runcard_path}"
+  exit 1
+end
+
+runcard = YAML.load_file(runcard_path)
+modules = runcard.fetch('modules') {
+  STDERR.puts "ERROR: runcard must define a top‐level 'modules' list"
+  exit 1
+}
+unless modules.is_a?(Array) && modules.all?{|m| m.is_a?(String)}
+  STDERR.puts "ERROR: 'modules' must be a list of module names"
   exit 1
 end
 
 project_name = ARGV.shift
-config_files  = ARGV
+config_files = ARGV
 
+# === SETUP output directories & tree_info.yaml ===
 out_root = File.join("out", project_name)
-
 unless options[:append]
   if Dir.exist?(out_root)
-    print "Directory '#{out_root}' already exists. Overwrite everything? [y/N]: "
+    print "Directory '#{out_root}' exists. Overwrite? [y/N]: "
     ans = STDIN.gets.chomp.downcase
-    unless %w[y yes].include?(ans)
-      puts "Aborting."
-      exit 0
-    end
+    exit unless %w[y yes].include?(ans)
     FileUtils.rm_rf(out_root)
   end
 end
 
-# locate all merged_cuts files
 base_dir    = File.join(
   "/volatile/clas12/users/gmat/clas12analysis.sidis.data",
   "clas12_dihadrons",
@@ -74,64 +86,57 @@ end
 
 config_files.each do |cfg|
   next unless File.file?(cfg)
-
-  config_name = File.basename(cfg, File.extname(cfg))
-  outc        = File.join(out_root, "config_#{config_name}")
+  cfg_name = File.basename(cfg, File.extname(cfg))
+  outc     = File.join(out_root, "config_#{cfg_name}")
 
   FileUtils.mkdir_p(outc)
   FileUtils.cp(cfg, outc) unless options[:append] && Dir.exist?(outc)
   File.write(File.join(outc, "volatile_project.txt"), VOLATILE_PROJECT)
 
-  # 1) filter out pi0_pi0
-  valid_files = merged_files.reject do |fp|
-    File.basename(File.dirname(fp)) == "pi0_pi0"
-  end
-  skipped = merged_files.size - valid_files.size
+  # skip pi0_pi0, then apply maxFiles
+  valid = merged_files.reject { |fp| File.basename(File.dirname(fp)) == "pi0_pi0" }
+  files = options[:maxFiles] && options[:maxFiles] > 0 ? valid.first(options[:maxFiles]) : valid
 
-  # 2) apply maxFiles to valid list
-  files_to_use = if options[:maxFiles] && options[:maxFiles] > 0
-                   valid_files.first(options[:maxFiles])
-                 else
-                   valid_files
-                 end
-
-  files_to_use.each do |fp|
+  files.each do |fp|
     pair = File.basename(File.dirname(fp))
     tag  = File.basename(fp).split('_merged_cuts_noPmin').first
     td   = File.join(outc, pair, tag)
     FileUtils.mkdir_p(td)
-
-    info = {
-      'tfile' => File.absolute_path(fp),
-      'ttree' => VOLATILE_TREE_NAME
-    }
+    info = { 'tfile' => File.absolute_path(fp), 'ttree' => VOLATILE_TREE_NAME }
     File.write(File.join(td, "tree_info.yaml"), info.to_yaml)
   end
 
-  puts "Set up: #{outc}  (wrote #{files_to_use.size} tree_info.yaml files, skipped #{skipped} pi0_pi0 files)"
+  puts "Set up: #{outc} (wrote #{files.size} tree_info.yaml, skipped #{merged_files.size - valid.size} pi0_pi0)"
 end
 
 puts "\nDirectory structure under #{out_root}:"
 system("tree", out_root)
 
-##############################################################################################
-# FILTERING TTREES
-##############################################################################################
-unless options[:append]
-  args = [project_name]
-  args << options[:maxEntries].to_s if options[:maxEntries]
-  puts "\n=> Invoking module___filterTree.rb: PROJECT=#{project_name} maxEntries=#{options[:maxEntries]||'all'}"
-  unless system("ruby", "./scripts/modules/module___filterTree.rb", *args)
-    STDERR.puts "ERROR: module___filterTree.rb failed"
-    exit 1
-  end
-end
+# === RUN modules in user‐specified order ===
+modules.each do |mod|
+  case mod
+  when 'filterTree'
+    if options[:append]
+      puts "Skipping filterTree (--append enabled)"
+      next
+    end
+    args = [project_name]
+    args << options[:maxEntries].to_s if options[:maxEntries]
+    cmd = ["ruby", "./scripts/modules/module___filterTree.rb", *args]
+    puts "\n=> filterTree: #{cmd.join(' ')}"
+    system(*cmd) or abort("filterTree failed")
 
-##############################################################################################
-# RUN ALL FURTHER MODULES
-##############################################################################################
-puts "\n=> Invoking module___purityBinning.rb for project '#{project_name}'..."
-unless system("ruby", "./scripts/modules/module___purityBinning.rb", project_name)
-  STDERR.puts "ERROR: module___purityBinning.rb failed"
-  exit 1
+  when 'purityBinning'
+    cmd = ["ruby", "./scripts/modules/module___purityBinning.rb", project_name]
+    puts "\n=> purityBinning: #{cmd.join(' ')}"
+    system(*cmd) or abort("purityBinning failed")
+
+  when 'asymmetry'
+    cmd = ["ruby", "./scripts/modules/module___asymmetry.rb", project_name]
+    puts "\n=> asymmetry: #{cmd.join(' ')}"
+    system(*cmd) or abort("asymmetry failed")
+
+  else
+    STDERR.puts "WARNING: unknown module '#{mod}' in runcard, skipping"
+  end
 end

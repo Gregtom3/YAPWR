@@ -224,7 +224,7 @@ void purityBinning(const char* inputPath,
       if(t->GetBranch(bName.c_str()))  t->SetBranchStatus(bName.c_str(),0);
       if(t->GetBranch(beName.c_str())) t->SetBranchStatus(beName.c_str(),0);
 
-      TBranch* bp  = t->Branch(bName.c_str(),  &purity_val ,"p/D");
+      TBranch* bp  = t->Branch(bName.c_str(),  &purity_val ,"p/D"); 
       TBranch* bpe = t->Branch(beName.c_str(), &purity_err ,"pe/D");
 
       // fill event-wise
