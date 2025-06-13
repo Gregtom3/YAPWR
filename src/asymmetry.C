@@ -190,7 +190,44 @@ void AsymmetryPW::Loop()
           RooArgList all(pdfObs); all.add(p);
           std::string expr="1 + hel * ("+buildMod("bkg_",false)+")";
           RooGenericPdf pdf("bkgpdf","bkgpdf",expr.c_str(),all);
-          auto* res = pdf.fitTo(*dBack,Save(true),PrintLevel(-1));
+          std::cout << "Fitting..." << std::endl;
+
+
+          //////////////////////////////////////////////////////////////////////////
+          /////////////               UN-BINNED FIT                    /////////////
+          //////////////////////////////////////////////////////////////////////////
+          //auto* res = pdf.fitTo(*dBack,Save(true),PrintLevel(1),EvalBackend("cpu"));
+          RooFitResult* res = pdf.fitTo(*dBack,
+              Save(true),
+              NumCPU(0),
+              PrintLevel(1),
+              Optimize(2),
+              Strategy(0),
+              Minimizer("Minuit2","migrad")
+          );
+          //////////////////////////////////////////////////////////////////////////
+          /////////////               BINNED FIT                    /////////////
+          /////////////////////////////////////////////////////////////////////////
+          // 1) build your binned histogram from the RooDataSet
+          // RooDataHist dhBack("dhBack","dhBack", pdfObs, *dBack);
+            
+          // // 2) build a binned‐PDF out of it
+          // RooHistPdf histPdfBack("histPdfBack","histPdfBack", pdfObs, dhBack);
+            
+          // // 3) fit the histPdfBack to dhBack (not the unbinned pdf to dBack)
+          // auto* res = histPdfBack.fitTo(
+          //     dhBack,
+          //     Save(true),
+          //     PrintLevel(1),
+          //     NumCPU(0),      // spawn threads if you like
+          //     Optimize(2)     // cache expressions
+          // );
+
+
+
+
+
+          
           if (res && res->status()==0 && res->covQual()>=2){
               for(size_t i=0;i<pvec.size();++i){
                  bkgVal[i]=pvec[i]->getVal();
@@ -238,8 +275,15 @@ void AsymmetryPW::Loop()
       RooArgList all(pdfObs); all.add(pars);
       RooGenericPdf pdf(("pdf_"+puName).c_str(),("pdf_"+puName).c_str(),
                         expr.c_str(),all);
-
-      auto* res=pdf.fitTo(*ds,Save(true),PrintLevel(-1));
+      std::cout << "Fitting..." << std::endl;
+      RooFitResult* res = pdf.fitTo(*ds,
+          Save(true),
+          NumCPU(0),
+          PrintLevel(1),
+          Optimize(2),
+          Strategy(0),
+          Minimizer("Minuit2","migrad")
+      );
       if (res && res->status()==0 && res->covQual()>=2){
           for(size_t i=0;i<pvec.size();++i){
               yaml<<"    "<<pvec[i]->GetName()<<": "<<pvec[i]->getVal()<<"\n";
