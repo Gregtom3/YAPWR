@@ -15,7 +15,7 @@ VOLATILE_TREE_NAME = 'dihadron_cuts_noPmin'
 # ------------------------------------------------------------------
 #  CLI parsing
 # ------------------------------------------------------------------
-options = { append: false, maxEntries: nil, maxFiles: nil, slurm: false }
+options = { append: false, maxEntries: nil, maxFiles: nil, slurm: false, is_running_on_slurm: true }
 optlist  = []                                     # remember original flags
 
 parser = OptionParser.new do |opts|
@@ -31,6 +31,7 @@ parser = OptionParser.new do |opts|
   opts.on('--maxEntries N', Integer){ |n| options[:maxEntries] = n ; optlist += ['--maxEntries', n.to_s] }
   opts.on('--maxFiles M',  Integer){ |m| options[:maxFiles]   = m ; optlist += ['--maxFiles',   m.to_s] }
   opts.on('--slurm')                { options[:slurm]  = true }
+  opts.on('--is_running_on_slurm')                { options[:is_running_on_slurm]  = true }
   opts.on('-h','--help'){ puts opts ; exit }
 end
 
@@ -67,6 +68,7 @@ if options[:slurm]
            File.realpath(__FILE__),
            *optlist,
            project_name,
+           "--is_running_on_slurm",
            File.realpath(runcard_path),
            File.realpath(cfg_path)
           ].shelljoin
@@ -163,6 +165,8 @@ def invoke(name, *args)
   system(*args) or abort "#{name} failed"
 end
 
+asym_ids = []
+
 modules.each do |mod|
   case mod
   when 'filterTree'
@@ -175,9 +179,18 @@ modules.each do |mod|
            'ruby','./scripts/modules/module___purityBinning.rb', project_name)
 
   when 'asymmetry'
-    invoke('asymmetry',
-           'ruby','./scripts/modules/module___asymmetry.rb', project_name)
-
+    if options[:is_running_on_slurm]
+      # capture the job‐ids that module___asymmetry.rb prints
+      out = `ruby ./scripts/modules/module___asymmetry.rb --slurm #{project_name}`
+      puts out
+      out.each_line.grep(/\[SLURM_JOBS\]/) do |ln|
+        asym_ids += ln.split.last.split(/,/)
+      end
+    else
+      invoke('asymmetry',
+             'ruby','./scripts/modules/module___asymmetry.rb', project_name)
+    end
+      
   when 'kinematicBins'
     invoke('kinematicBins',
            'ruby','./scripts/modules/module___kinematicBins.rb', project_name)
