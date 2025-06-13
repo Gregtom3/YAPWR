@@ -67,7 +67,6 @@ if options[:slurm]
            File.realpath(__FILE__),
            *optlist,
            project_name,
-           '--append',
            File.realpath(runcard_path),
            File.realpath(cfg_path)
           ].shelljoin
@@ -75,8 +74,8 @@ if options[:slurm]
     batch = <<~SLURM
       #!/bin/bash
       #SBATCH --job-name=#{project_name}_#{cfg_name}
-      #SBATCH --output=#{cfg_dir}/pipeline.out
-      #SBATCH --error=#{cfg_dir}/pipeline.err
+      #SBATCH --output=#{project_root}/pipeline_#{cfg_name}.out
+      #SBATCH --error=#{project_root}/pipeline_#{cfg_name}.err
       #SBATCH --time=24:00:00
       #SBATCH --mem-per-cpu=4000
       #SBATCH --cpus-per-task=4
@@ -108,22 +107,6 @@ abort "runcard needs an array 'modules'" unless modules.is_a?(Array)
 # ---------- prepare out/ tree -------------------------------------
 out_root = File.join('out', project_name)
 
-unless options[:append]
-  if Dir.exist?(out_root)
-    #––– interactive only when we have a TTY –––
-    answer =
-      if $stdin.tty?            # local run: ask user
-        print "Directory '#{out_root}' exists. Overwrite? [y/N]: "
-        STDIN.gets&.chomp&.downcase
-      else                      # Slurm: no TTY → auto-yes
-        'yes'
-      end
-
-    exit 0 unless %w[y yes].include?(answer)
-    FileUtils.rm_rf(out_root)
-  end
-end
-
 # ---------- locate volatile ROOT files -----------------------------
 base_dir = File.join('/volatile/clas12/users/gmat/clas12analysis.sidis.data',
                      'clas12_dihadrons','projects',VOLATILE_PROJECT,'data')
@@ -136,6 +119,22 @@ config_files.each do |cfg|
 
   cfg_name = File.basename(cfg, File.extname(cfg))
   cfg_dir  = File.join(out_root, "config_#{cfg_name}")
+
+  unless options[:append]
+      if Dir.exist?(cfg_dir)
+        #––– interactive only when we have a TTY –––
+        answer =
+          if $stdin.tty?            # local run: ask user
+            print "Directory '#{cfg_dir}' exists. Overwrite? [y/N]: "
+            STDIN.gets&.chomp&.downcase
+          else                      # Slurm: no TTY → auto-yes
+            'yes'
+          end
+    
+        exit 0 unless %w[y yes].include?(answer)
+        FileUtils.rm_rf(cfg_dir)
+      end
+  end
   FileUtils.mkdir_p(cfg_dir)
   FileUtils.cp(cfg, cfg_dir) unless options[:append]
 
