@@ -77,7 +77,7 @@ if options[:slurm]
       #SBATCH --job-name=#{project_name}_#{cfg_name}
       #SBATCH --output=#{cfg_dir}/pipeline.out
       #SBATCH --error=#{cfg_dir}/pipeline.err
-      #SBATCH --time=12:00:00
+      #SBATCH --time=24:00:00
       #SBATCH --mem-per-cpu=4000
       #SBATCH --cpus-per-task=4
 
@@ -108,15 +108,20 @@ abort "runcard needs an array 'modules'" unless modules.is_a?(Array)
 # ---------- prepare out/ tree -------------------------------------
 out_root = File.join('out', project_name)
 
-cfg_dir  = File.join(out_root, "config_#{cfg_name}")
+unless options[:append]
+  if Dir.exist?(out_root)
+    #––– interactive only when we have a TTY –––
+    answer =
+      if $stdin.tty?            # local run: ask user
+        print "Directory '#{out_root}' exists. Overwrite? [y/N]: "
+        STDIN.gets&.chomp&.downcase
+      else                      # Slurm: no TTY → auto-yes
+        'yes'
+      end
 
-if Dir.exist?(cfg_dir) && !options[:append]
-  if $stdin.tty?
-    print "Config '#{cfg_name}' exists – overwrite it? [y/N]: "
-    ans = STDIN.gets&.chomp&.downcase
-    exit 0 unless %w[y yes].include?(ans)
+    exit 0 unless %w[y yes].include?(answer)
+    FileUtils.rm_rf(out_root)
   end
-  FileUtils.rm_rf(cfg_dir)   # ← **delete just this config**
 end
 
 # ---------- locate volatile ROOT files -----------------------------
@@ -165,7 +170,6 @@ modules.each do |mod|
       args = ['ruby','./scripts/modules/module___filterTree.rb', project_name]
       args << options[:maxEntries].to_s if options[:maxEntries]
       invoke('filterTree', *args)
-
 
   when 'purityBinning'
     invoke('purityBinning',
