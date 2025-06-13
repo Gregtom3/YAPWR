@@ -24,6 +24,10 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
     leaf = File.dirname(info_path)
     pair = File.basename(File.dirname(leaf))
     filtered = File.join(leaf, File.basename(orig_tfile))
+    tag  = File.basename(leaf)
+    # **skip Monte-Carlo tags**
+    next if tag.start_with?("MC_")
+      
     unless File.exist?(filtered)
       warn "[module___asymmetryPW] missing filtered: #{filtered}"
       next
