@@ -1,5 +1,5 @@
 modules:
-#  - filterTree
-#  - purityBinning
-#  - asymmetry
+   - filterTree
+   - purityBinning
+   - asymmetry
    - kinematicBins
