@@ -181,7 +181,10 @@ modules.each do |mod|
   when 'kinematicBins'
     invoke('kinematicBins',
            'ruby','./scripts/modules/module___kinematicBins.rb', project_name)
-
+      
+  when 'baryonContamination'
+    invoke('baryonContamination',
+           'ruby','./scripts/modules/module___baryonContamination.rb', project_name)
   else
     warn "WARNING: unknown module '#{mod}' – skipped"
   end

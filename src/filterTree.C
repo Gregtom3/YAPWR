@@ -34,6 +34,9 @@ void filterTree(const char* inputPath,
     outF->cd();                 // <-- make this file the current directory
 
     // 4) Now CopyTree() will create the new TTree in outF
+    if(maxEntries==-1){
+        maxEntries=1000000000;
+    }
     TTree *outT = inT->CopyTree(selection.c_str(),"",maxEntries);
     outT->SetName(treeName);
 
