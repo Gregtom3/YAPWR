@@ -205,6 +205,10 @@ modules.each do |mod|
   when 'particleMisidentification'
     invoke('particleMisidentification',
            'ruby','./scripts/modules/module___particleMisidentification.rb', project_name)
+
+  when 'binMigration'
+    invoke('binMigration',
+           'ruby','./scripts/modules/module___binMigration.rb', project_name)
       
   else
     warn "WARNING: unknown module '#{mod}' – skipped"
