@@ -29,19 +29,21 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
     STDERR.puts "[baryonContamination][#{tag}] WARNING: filtered file not found: #{filtered_tfile}"
     next
   end
+    
+  # Prepare output directory and log file
+  outdir   = File.join(leaf_dir, 'module-out___baryonContamination')
+  FileUtils.mkdir_p(outdir)
+  log_file = File.join(outdir, "#{tag}_baryonContamination.yaml")
+
+  # Build ROOT macro invocation with log path argument
+  macro = %Q{src/baryonContamination.C("#{filtered_tfile}","#{tree_name}","#{log_file}")}
+  cmd   = ['root', '-l', '-b', '-q', macro]
 
   puts "[baryonContamination][#{tag}] #{filtered_tfile} (#{tree_name})"
+  puts "  -> writing results to #{log_file}"
 
-  # Prepare the ROOT macro invocation (as a single shell argument)
-  macro = %Q{src/baryonContamination.C("#{filtered_tfile}","#{tree_name}")}
-
-  cmd = [
-    "root", "-l", "-b", "-q",
-    macro
-  ]
-
-  puts "  -> #{cmd.map(&:inspect).join(' ')}"
+  # Run macro (it writes directly to log_file)
   unless system(*cmd)
-    STDERR.puts "[baryonContamination] ERROR running: #{cmd.join(' ')}"
+    STDERR.puts "[baryonContamination] ERROR: ROOT macro failed with exit status #{$?.exitstatus}"
   end
 end
