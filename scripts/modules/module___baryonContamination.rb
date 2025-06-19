@@ -20,7 +20,7 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
   info       = YAML.load_file(info_path)
   orig_tfile = info.fetch("tfile")
   tree_name  = info.fetch("ttree")
-
+    
   # build the path to the *filtered* file
   leaf_dir     = File.dirname(info_path)
   filtered_tfile = File.join(leaf_dir, File.basename(orig_tfile))

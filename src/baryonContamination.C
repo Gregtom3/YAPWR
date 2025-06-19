@@ -14,7 +14,6 @@ void baryonContamination(const char* filePath, const char* treeName) {
         std::cerr << "[baryonContamination] ERROR: cannot open " << filePath << "\n";
         return;
     }
-
     // 2) get tree
     TTree* t = dynamic_cast<TTree*>(f->Get(treeName));
     if (!t) {

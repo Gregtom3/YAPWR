@@ -140,20 +140,23 @@ config_files.each do |cfg|
   FileUtils.mkdir_p(cfg_dir)
   FileUtils.cp(cfg, cfg_dir) unless options[:append]
 
-  File.write(File.join(cfg_dir, 'volatile_project.txt'), VOLATILE_PROJECT)
+  unless options[:append]
+    File.write(File.join(cfg_dir, 'volatile_project.txt'), VOLATILE_PROJECT)
 
-  usable = merged_files.reject { |f| File.basename(File.dirname(f)) == 'pi0_pi0' }
-  usable = usable.first(options[:maxFiles]) if options[:maxFiles]&.positive?
+    usable = merged_files.reject { |f| File.basename(File.dirname(f)) == 'pi0_pi0' }
+    usable = usable.first(options[:maxFiles]) if options[:maxFiles]&.positive?
 
-  usable.each do |fp|
-    pair = File.basename(File.dirname(fp))
-    tag  = File.basename(fp).split('_merged_cuts_noPmin').first
-    leaf = File.join(cfg_dir, pair, tag)
-    FileUtils.mkdir_p(leaf)
-    info = { 'tfile'=>File.absolute_path(fp), 'ttree'=>VOLATILE_TREE_NAME }
-    File.write(File.join(leaf,'tree_info.yaml'), info.to_yaml)
+    usable.each do |fp|
+      pair = File.basename(File.dirname(fp))
+      tag  = File.basename(fp).split('_merged_cuts_noPmin').first
+      leaf = File.join(cfg_dir, pair, tag)
+      FileUtils.mkdir_p(leaf)
+      info = { 'tfile'=>File.absolute_path(fp), 'ttree'=>VOLATILE_TREE_NAME }
+      File.write(File.join(leaf,'tree_info.yaml'), info.to_yaml)
+    end
+
+    puts "Prepared #{cfg_dir} (#{usable.size} trees)"
   end
-  puts "Prepared #{cfg_dir} (#{usable.size} trees)"
 end
 
 puts "\nDirectory tree:"
