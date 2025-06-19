@@ -201,6 +201,11 @@ modules.each do |mod|
   when 'baryonContamination'
     invoke('baryonContamination',
            'ruby','./scripts/modules/module___baryonContamination.rb', project_name)
+
+  when 'particleMisidentification'
+    invoke('particleMisidentification',
+           'ruby','./scripts/modules/module___particleMisidentification.rb', project_name)
+      
   else
     warn "WARNING: unknown module '#{mod}' – skipped"
   end
