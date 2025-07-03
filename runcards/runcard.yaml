@@ -3,7 +3,7 @@ modules:
 #    - purityBinning
 #    - asymmetry
 #    - kinematicBins
-#    - baryonContamination
-#    - particleMisidentification
+    - baryonContamination
+    - particleMisidentification
 #    - binMigration
-     - asymmetry_sideband
+#    - asymmetry_sideband

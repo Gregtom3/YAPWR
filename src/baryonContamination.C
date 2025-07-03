@@ -3,6 +3,7 @@
 #include <TTree.h>
 #include <TBranch.h>
 #include <TSystem.h>
+#include <TString.h>
 #include <iostream>
 #include <fstream>
 #include <map>
@@ -23,8 +24,16 @@ static void writeYaml(const std::string& path,
     out << "total_entries: " << total << "\n";
     for (size_t i = 0; i < branches.size(); ++i) {
         out << branches[i] << ":\n";
-        for (auto it = counts[i].begin(); it != counts[i].end(); ++it) {
-            out << "  '" << it->first << "': " << it->second << "\n";
+        if (counts[i].empty()) {
+            out << "  {}\n";
+            continue;
+        }
+        // sort by descending count
+        std::vector<std::pair<Int_t,Long64_t>> vec(counts[i].begin(), counts[i].end());
+        std::sort(vec.begin(), vec.end(),
+                  [](auto &a, auto &b){ return a.second > b.second; });
+        for (auto& p : vec) {
+            out << "  '" << p.first << "': " << p.second << "\n";
         }
     }
     out.close();
@@ -39,6 +48,7 @@ void baryonContamination(const char* filePath,
         std::cerr << "[baryonContamination] ERROR: cannot open file " << filePath << "\n";
         return;
     }
+
     // Get tree
     TTree* t = dynamic_cast<TTree*>(f->Get(treeName));
     if (!t) {
@@ -47,6 +57,18 @@ void baryonContamination(const char* filePath,
         f->Close();
         return;
     }
+
+    // Attach MCMatch branch for filtering
+    Int_t  mcMatchVal = 0;
+    bool   hasMCMatch = false;
+    if (auto b = t->GetBranch("MCmatch")) {
+        hasMCMatch = true;
+        t->SetBranchStatus("MCmatch", 1);
+        t->SetBranchAddress("MCmatch", &mcMatchVal);
+    } else {
+        std::cerr << "[baryonContamination] WARNING: MCMatch branch not found; no filtering applied\n";
+    }
+
     // Prepare branches and counts
     std::vector<std::string> branchNames = {
         "trueparentpid_1",
@@ -56,27 +78,36 @@ void baryonContamination(const char* filePath,
     };
     std::vector<std::map<Int_t,Long64_t>> counts(branchNames.size());
     std::vector<Int_t> values(branchNames.size(), 0);
-    // Enable branches
+
+    // Enable and attach branches
     for (size_t i = 0; i < branchNames.size(); ++i) {
-        if (t->GetBranch(branchNames[i].c_str())) {
-            t->SetBranchStatus(branchNames[i].c_str(), 1);
-            t->SetBranchAddress(branchNames[i].c_str(), &values[i]);
+        const char* nm = branchNames[i].c_str();
+        if (t->GetBranch(nm)) {
+            t->SetBranchStatus(nm, 1);
+            t->SetBranchAddress(nm, &values[i]);
         }
     }
+
     // Loop entries
     Long64_t nEntries = t->GetEntries();
+    Long64_t nEntries_good = t->GetEntries("MCmatch==1");
     for (Long64_t entry = 0; entry < nEntries; ++entry) {
         t->GetEntry(entry);
+        // skip entries failing MCMatch == 1
+        if (hasMCMatch && mcMatchVal != 1) continue;
         for (size_t i = 0; i < branchNames.size(); ++i) {
             if (t->GetBranch(branchNames[i].c_str())) {
                 counts[i][ values[i] ]++;
             }
         }
     }
-    // Ensure yaml directory exists
+
+    // Ensure YAML directory exists
     TString dir = gSystem->DirName(yamlPath);
     gSystem->mkdir(dir, true);
+
     // Write YAML
-    writeYaml(yamlPath, nEntries, branchNames, counts);
+    writeYaml(yamlPath, nEntries_good, branchNames, counts);
+
     f->Close();
 }

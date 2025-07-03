@@ -10,8 +10,8 @@
 
 // Macro entry:
 void particleMisidentification(const char* filePath,
-			       const char* treeName,
-			       const char* yamlPath) {
+                               const char* treeName,
+                               const char* yamlPath) {
   // 1) ensure output directory exists
   {
     std::string dir = std::string(yamlPath);
@@ -41,9 +41,21 @@ void particleMisidentification(const char* filePath,
     return;
   }
 
+  // 3.5) Attach MCMatch branch for filtering
+  Int_t  mcMatchVal = 0;
+  bool   hasMCMatch = false;
+  if (auto b = t->GetBranch("MCmatch")) {
+    hasMCMatch = true;
+    t->SetBranchStatus("MCmatch", 1);
+    t->SetBranchAddress("MCmatch", &mcMatchVal);
+  } else {
+    std::cerr << "[particleMisidentification] WARNING: MCMatch branch not found, no filtering will be applied\n";
+  }
+
   // 4) total entries
   Long64_t nEntries = t->GetEntries();
-  out << "total_entries: " << nEntries << "\n";
+  Long64_t nEntries_good = t->GetEntries("MCmatch==1");
+  out << "total_entries: " << nEntries_good << "\n";
 
   // 5) branches to scan
   std::vector<std::string> branchNames = {
@@ -53,7 +65,7 @@ void particleMisidentification(const char* filePath,
     "truepid_11",
     "truepid_12",
     "truepid_21",
-            "truepid_22"
+    "truepid_22"
   };
 
   // prepare maps and storage
@@ -66,17 +78,17 @@ void particleMisidentification(const char* filePath,
     if (t->GetBranch(nm)) {
       t->SetBranchStatus(nm, 1);
       t->SetBranchAddress(nm, &values[i]);
-    } else {
-      // branch missing: leave map empty
     }
   }
 
   // 7) loop over entries
   for (Long64_t entry = 0; entry < nEntries; ++entry) {
     t->GetEntry(entry);
+    // skip any entry where MCMatch != 1
+    if (hasMCMatch && mcMatchVal != 1) continue;
     for (size_t i = 0; i < branchNames.size(); ++i) {
       if (t->GetBranch(branchNames[i].c_str())) {
-	counts[i][ values[i] ]++;
+        counts[i][ values[i] ]++;
       }
     }
   }
@@ -93,7 +105,7 @@ void particleMisidentification(const char* filePath,
     // sort by descending count
     std::vector< std::pair<Int_t, Long64_t> > vec(mp.begin(), mp.end());
     std::sort(vec.begin(), vec.end(),
-	      [](auto &a, auto &b){ return a.second > b.second; });
+              [](auto &a, auto &b){ return a.second > b.second; });
     // emit pid: count
     for (auto &p : vec) {
       out << "  \"" << p.first << "\": " << p.second << "\n";
