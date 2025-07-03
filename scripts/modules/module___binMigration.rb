@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# coding: utf-8
 # module___binMigration.rb — invoke binMigration.C on each MC­-tagged leaf,
 # passing it the filtered TFile, TTree name, the top‐level config YAML, and project root.
 
@@ -20,7 +21,7 @@ Dir
 
     tag = File.basename(File.dirname(info_path))
     next unless tag.include?("MC")
-
+    
     info       = YAML.load_file(info_path)
     orig_tfile = info.fetch("tfile")
     tree_name  = info.fetch("ttree")
@@ -42,17 +43,23 @@ Dir
       STDERR.puts "[binMigration][#{tag}] WARNING: primary YAML not found: #{primary_yaml}"
       next
     end
-
+        
+    # Prepare output directory and log file
+    outdir   = File.join(leaf_dir, 'module-out___binMigration')
+    FileUtils.mkdir_p(outdir)
+    log_file = File.join(outdir, "#{tag}_binMigration.yaml")
+        
     puts "[binMigration][#{tag}]"
     puts "    filtered:    #{filtered}"
     puts "    primary yaml: #{primary_yaml}"
+    puts "    log file: #{log_file}"
 
     macro = %Q{src/binMigration.C("#{filtered}",
                                    "#{tree_name}",
                                    "#{primary_yaml}",
-                                   "#{out_root}")}
+                                   "#{out_root}",
+                                   "#{log_file}")}
     cmd = ['root','-l','-b','-q', macro]
-
     puts "  -> #{cmd.join(' ')}"
     system(*cmd) or STDERR.puts("[binMigration] ERROR on #{primary_yaml}")
   end

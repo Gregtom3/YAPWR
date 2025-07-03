@@ -5,4 +5,5 @@ modules:
 #    - kinematicBins
 #    - baryonContamination
 #    - particleMisidentification
-    - binMigration
+#    - binMigration
+     - asymmetry_sideband

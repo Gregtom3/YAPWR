@@ -23,6 +23,10 @@
 
 using namespace RooFit;
 
+static std::string  gSignalRegion          = "M2>0.106 && M2<0.166";
+static std::string  gBackgroundRegion      = "M2>0.2   && M2<0.4";
+static std::string  gOutputFilename    = "asymmetry_results.yaml";
+
 // helper ──────────────────────────────────────────────────────
 static std::string legendreString(int l,int m)
 {
@@ -136,7 +140,7 @@ std::string AsymmetryPW::buildMod(const std::string& pref,
 void AsymmetryPW::Loop()
 {
   gSystem->mkdir(outDir_.c_str(),true);
-  std::ofstream yaml(outDir_+"/asymmetry_results.yaml");
+  std::ofstream yaml(outDir_ + "/" + gOutputFilename);
   yaml<<"results:\n";
 
   // open ROOT
@@ -168,8 +172,8 @@ void AsymmetryPW::Loop()
   RooDataSet* dBack = nullptr;
   RooDataSet* dSign = nullptr;
   if (pi0){
-      dBack = static_cast<RooDataSet*>(full.reduce("M2>0.2 && M2<0.4"));
-      dSign = static_cast<RooDataSet*>(full.reduce("M2>0.106 && M2<0.166"));
+      dBack = static_cast<RooDataSet*>(full.reduce(gBackgroundRegion.c_str()));
+      dSign = static_cast<RooDataSet*>(full.reduce(gSignalRegion.c_str()));
   }
 
   // ---- background fit -------------------------------------------------------
@@ -297,7 +301,7 @@ void AsymmetryPW::Loop()
   if (pi0){ delete dBack; delete dSign; }
   for(auto* pv:purityVars) delete pv;
   f.Close(); yaml.close();
-  std::cout<<"Wrote "<<outDir_<<"/asymmetry_results.yaml\n";
+  std::cout<<"Wrote "<<outDir_<<"/"<<gOutputFilename<<"\n";
 }
 
 // wrapper for Ruby module
@@ -308,5 +312,22 @@ void asymmetry(const char* input,
 {
   gSystem->mkdir(outDir,true);
   AsymmetryPW job(input,tree,pair,outDir);
+  job.Loop();
+}
+
+// wrapper with extra inputs
+void asymmetry(const char* input,
+               const char* tree,
+               const char* pair,
+               const char* outDir,
+               const char*   signalRegion,
+               const char*   backgroundRegion)
+{
+  // override the defaults
+  gSignalRegion         = signalRegion;
+  gBackgroundRegion     = backgroundRegion;
+
+  gSystem->mkdir(outDir, true);
+  AsymmetryPW job(input, tree, pair, outDir);
   job.Loop();
 }

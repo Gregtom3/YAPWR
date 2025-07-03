@@ -15,7 +15,7 @@ VOLATILE_TREE_NAME = 'dihadron_cuts_noPmin'
 # ------------------------------------------------------------------
 #  CLI parsing
 # ------------------------------------------------------------------
-options = { append: false, maxEntries: nil, maxFiles: nil, slurm: false, is_running_on_slurm: true }
+options = { append: false, maxEntries: nil, maxFiles: nil, slurm: false, is_running_on_slurm: false }
 optlist  = []                                     # remember original flags
 
 parser = OptionParser.new do |opts|
@@ -192,6 +192,19 @@ modules.each do |mod|
     else
       invoke('asymmetry',
              'ruby','./scripts/modules/module___asymmetry.rb', project_name)
+    end
+  
+  when 'asymmetry_sideband'
+    if options[:is_running_on_slurm]
+      # capture the job‐ids that module___asymmetry_sideband.rb prints
+      out = `ruby ./scripts/modules/module___asymmetry_sideband.rb --slurm #{project_name}`
+      puts out
+      out.each_line.grep(/\[SLURM_JOBS\]/) do |ln|
+        asym_ids += ln.split.last.split(/,/)
+      end
+    else
+      invoke('asymmetry_sideband',
+             'ruby','./scripts/modules/module___asymmetry_sideband.rb', project_name)
     end
       
   when 'kinematicBins'
