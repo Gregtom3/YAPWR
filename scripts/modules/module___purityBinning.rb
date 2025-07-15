@@ -48,7 +48,7 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
 
     # 4) Build the ROOT command
     #    purityBinning(in, tree, pair, outDir)
-    root_cmd = "root -l -q src/purityBinning.C\\(\\\"#{filtered_file}\\\",\\\"#{ttree}\\\",\\\"#{pair}\\\",\\\"#{output_dir}\\\"\\)"
+    root_cmd = "root -l -q src/modules/purityBinning.C\\(\\\"#{filtered_file}\\\",\\\"#{ttree}\\\",\\\"#{pair}\\\",\\\"#{output_dir}\\\"\\)"
 
     puts "[module___purityBinning] Running: #{root_cmd}"
     system(root_cmd) or

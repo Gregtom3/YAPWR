@@ -43,7 +43,7 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
   puts "[particleMisidentification][#{tag}] #{filtered_tfile} → #{yaml_path}"
 
   # --- invoke ROOT macro with (file, tree, yaml_output) ---
-  macro = %Q{src/particleMisidentification.C("#{filtered_tfile}","#{tree_name}","#{yaml_path}")}
+  macro = %Q{src/modules/particleMisidentification.C("#{filtered_tfile}","#{tree_name}","#{yaml_path}")}
   cmd   = ["root", "-l", "-b", "-q", macro]
 
   puts "  -> #{cmd.map(&:inspect).join(' ')}"

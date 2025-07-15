@@ -38,7 +38,7 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
 
     root_cmd = [
       "root", "-l", "-b", "-q",
-      %Q{'src/asymmetry.C("#{filtered}","#{ttree}","#{pair}","#{mod_out}")'}
+      %Q{'src/modules/asymmetry.C("#{filtered}","#{ttree}","#{pair}","#{mod_out}")'}
     ].join(' ')
 
     if options[:slurm]

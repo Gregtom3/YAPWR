@@ -23,7 +23,7 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |cfg|
     outdir = File.join(leaf, "module-out___kinematicBins")
     FileUtils.mkdir_p(outdir)
 
-    macro  = %Q{src/kinematicBins.C("#{froot}","#{ttree}","#{pair}","#{outdir}")}
+    macro  = %Q{src/modules/kinematicBins.C("#{froot}","#{ttree}","#{pair}","#{outdir}")}
     cmd    = ["root", "-l", "-b", "-q", macro]       # each arg is atomic
 
     puts "[module___kinematicBins] #{cmd.join(' ')}"

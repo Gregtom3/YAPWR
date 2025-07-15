@@ -39,7 +39,7 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
     entry_arg = max_entries && max_entries > 0 ? max_entries : -1
     
     # build the ROOT command, inserting entry_arg at the end
-    root_cmd = "root -l -q src/filterTree.C\\(\\\"#{tfile}\\\",\\\"#{ttree}\\\",\\\"#{cfg}\\\",\\\"#{pair}\\\",\\\"#{outdir}\\\",#{entry_arg}\\)"
+    root_cmd = "root -l -q src/modules/filterTree.C\\(\\\"#{tfile}\\\",\\\"#{ttree}\\\",\\\"#{cfg}\\\",\\\"#{pair}\\\",\\\"#{outdir}\\\",#{entry_arg}\\)"
     
     puts "Running filterTree on #{tfile} (tree=#{ttree}) -> #{outdir}  [maxEntries=#{entry_arg}]"
       

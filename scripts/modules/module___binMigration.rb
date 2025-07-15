@@ -54,7 +54,7 @@ Dir
     puts "    primary yaml: #{primary_yaml}"
     puts "    log file: #{log_file}"
 
-    macro = %Q{src/binMigration.C("#{filtered}",
+    macro = %Q{src/modules/binMigration.C("#{filtered}",
                                    "#{tree_name}",
                                    "#{primary_yaml}",
                                    "#{out_root}",
