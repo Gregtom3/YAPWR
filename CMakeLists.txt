@@ -1,19 +1,39 @@
-# CMakeLists.txt (top-level)
 cmake_minimum_required(VERSION 3.15)
 project(AnalysisSynthesizer VERSION 0.1 LANGUAGES CXX)
 
+# Use C++17
 set(CMAKE_CXX_STANDARD 17)
-find_package(ROOT REQUIRED COMPONENTS RIO Tree Hist)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Find ALL of ROOT (no COMPONENTS list)
+find_package(ROOT REQUIRED)
+
+# Find yaml-cpp for your YAML parsing
 find_package(yaml-cpp REQUIRED)
-find_package(spdlog REQUIRED)         # optional logging
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
-file(GLOB SRC src/*.cpp src/processors/*.cpp)
+# Include your headers and ROOT headers
+include_directories(
+  ${CMAKE_SOURCE_DIR}/include
+  ${ROOT_INCLUDE_DIRS}
+)
 
-add_executable(synthesizer src/main.cpp ${SRC})
+# Gather all your source files
+file(GLOB SRC
+  src/*.cpp
+  src/processors/*.cpp
+)
+
+# Define the executable
+add_executable(synthesizer
+  src/main.cpp
+  ${SRC}
+)
+
+# Link against every ROOT library plus yaml-cpp
 target_link_libraries(synthesizer
-  PRIVATE ROOT::RIO ROOT::Tree ROOT::Hist
-          yaml-cpp::yaml-cpp
-          spdlog::spdlog)
+  PRIVATE
+    ${ROOT_LIBRARIES}
+    yaml-cpp::yaml-cpp
+)
 
-# install, testing, etc.
+# (Optional) Enable testing or installation steps here…

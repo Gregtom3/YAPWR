@@ -1,33 +1,76 @@
 #include "Synthesizer.h"
-#include "ModuleProcessorFactory.h"
+
 #include <filesystem>
 #include <iostream>
 
+#include "Logger.h"
+#include "ModuleProcessorFactory.h"
+
 namespace fs = std::filesystem;
 
-Synthesizer::Synthesizer(const std::string& pd,
-                         const std::string& pp,
-                         const std::string& rp)
- : projectDir_(pd), pionPair_(pp), runPeriod_(rp)
-{}
+Synthesizer::Synthesizer(const std::string& pd, const std::string& pp, const std::string& rp)
+    : projectDir_(pd), pionPair_(pp), runPeriod_(rp) {}
 
 void Synthesizer::discoverConfigs() {
-  fs::path base = fs::path(projectDir_) / pionPair_ / runPeriod_;
-  for (auto& d : fs::directory_iterator(base)) {
-    if (d.is_directory() && d.path().extension()==".yaml") continue;
-    auto cfg = Config::loadFromFile((d.path() / (d.path().filename().string()+".yaml")).string());
-    configs_.push_back(cfg);
+  // Build list of candidate base directories
+  std::vector<fs::path> candidates = {
+      fs::path(projectDir_) / pionPair_ / runPeriod_,
+      fs::path("out") / projectDir_ / pionPair_ / runPeriod_,
+      fs::path("..") / "out" / projectDir_ / pionPair_ / runPeriod_};
+
+  // Pick the first one that exists
+  fs::path base;
+  for (auto& p : candidates) {
+    if (fs::exists(p) && fs::is_directory(p)) {
+      base = p;
+      break;
+    }
   }
+
+  // If none exist, give a clear error
+  if (base.empty()) {
+    throw std::runtime_error(
+        "Synthesizer::discoverConfigs(): none of the candidate base directories exist:\n"
+        "  " +
+        candidates[0].string() +
+        "\n"
+        "  " +
+        candidates[1].string() +
+        "\n"
+        "  " +
+        candidates[2].string());
+  }
+
+  // Scan each subdirectory for its YAML and load it
+  for (auto& entry : fs::directory_iterator(base)) {
+    if (!entry.is_directory())
+      continue;
+
+    fs::path yamlPath = entry.path() / (entry.path().filename().string() + ".yaml");
+    if (!fs::exists(yamlPath)) {
+      std::cerr << "[warn] no config YAML for " << entry.path().filename().string()
+                << " (looking for " << yamlPath << ")\n";
+      continue;
+    }
+
+    configs_.push_back(Config::loadFromFile(yamlPath.string()));
+  }
+
+  // Ensure we found at least one valid config
+  if (configs_.empty()) {
+    throw std::runtime_error(
+        "Synthesizer::discoverConfigs(): no valid config directories found under " + base.string());
+  }
+  LOG_INFO("Found " << configs_.size() << " configs");
 }
 
 void Synthesizer::runAll() {
   for (auto& cfg : configs_) {
     for (auto& mod : moduleNames_) {
-      fs::path modPath = fs::path(projectDir_)
-        / cfg.name / pionPair_ / runPeriod_
-        / ("module-out___" + mod);
+      fs::path modPath =
+          fs::path(projectDir_) / cfg.name / pionPair_ / runPeriod_ / ("module-out___" + mod);
       auto proc = ModuleProcessorFactory::instance().create(mod);
-      auto res  = proc->process(modPath.string(), cfg);
+      auto res = proc->process(modPath.string(), cfg);
       allResults_[cfg.name].push_back(res);
     }
   }

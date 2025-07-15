@@ -1,13 +1,13 @@
 #pragma once
-#include <vector>
 #include <string>
+#include <vector>
+
 #include "Config.h"
 #include "Result.h"
 
 class Synthesizer {
-public:
-  Synthesizer(const std::string& projectDir,
-              const std::string& pionPair,
+ public:
+  Synthesizer(const std::string& projectDir, const std::string& pionPair,
               const std::string& runPeriod);
 
   /// Discover all <CONFIG_NAME> subdirs under projectDir/pionPair/runPeriod
@@ -22,11 +22,11 @@ public:
   /// produce plots (via ROOT), export LaTeX tables, etc.
   void synthesizeFinal();
 
-private:
+ private:
   std::string projectDir_, pionPair_, runPeriod_;
   std::vector<Config> configs_;
   std::vector<std::string> moduleNames_ = {
-    "asymmetryPW", "binMigration" /* … add more… */
+      "asymmetryPW", "binMigration" /* … add more… */
   };
   std::map<std::string, std::vector<Result>> allResults_;
 };
