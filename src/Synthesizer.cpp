@@ -13,11 +13,13 @@ Synthesizer::Synthesizer(const std::string& pd, const std::string& pp, const std
 
 void Synthesizer::discoverConfigs() {
   // Build list of candidate base directories
-  std::vector<fs::path> candidates = {
-      fs::path(projectDir_) / pionPair_ / runPeriod_,
-      fs::path("out") / projectDir_ / pionPair_ / runPeriod_,
-      fs::path("..") / "out" / projectDir_ / pionPair_ / runPeriod_};
-
+  // std::vector<fs::path> candidates = {
+  //     fs::path(projectDir_) / pionPair_ / runPeriod_,
+  //     fs::path("out") / projectDir_ / pionPair_ / runPeriod_,
+  //     fs::path("..") / "out" / projectDir_ / pionPair_ / runPeriod_
+  // };
+  std::vector<fs::path> candidates = {fs::path(projectDir_), fs::path("out") / projectDir_,
+                                      fs::path("..") / "out" / projectDir_};
   // Pick the first one that exists
   fs::path base;
   for (auto& p : candidates) {
@@ -46,7 +48,17 @@ void Synthesizer::discoverConfigs() {
     if (!entry.is_directory())
       continue;
 
-    fs::path yamlPath = entry.path() / (entry.path().filename().string() + ".yaml");
+    // Get the folder name, e.g. "config_x0.1-0.3"
+    std::string folderName = entry.path().filename().string();
+
+    // If it starts with "config_", remove that prefix
+    const std::string prefix = "config_";
+    if (folderName.rfind(prefix, 0) == 0) {
+      folderName = folderName.substr(prefix.size());
+    }
+
+    // Now yamlPath becomes ".../x0.1-0.3.yaml" instead of ".../config_x0.1-0.3.yaml"
+    fs::path yamlPath = entry.path() / (folderName + ".yaml");
     if (!fs::exists(yamlPath)) {
       std::cerr << "[warn] no config YAML for " << entry.path().filename().string()
                 << " (looking for " << yamlPath << ")\n";
