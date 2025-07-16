@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
     }
     Synthesizer synth(argv[1], argv[2], argv[3]);
     synth.discoverConfigs();
-    // synth.runAll();
+    synth.runAll();
     // synth.synthesizeFinal();
     return 0;
 }

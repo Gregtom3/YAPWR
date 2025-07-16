@@ -1,6 +1,7 @@
 #pragma once
 #include "ModuleProcessor.h"
 #include "ModuleProcessorFactory.h"
+#include "Logger.h"
 
 class AsymmetryProcessor : public ModuleProcessor {
 public:

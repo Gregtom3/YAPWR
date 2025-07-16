@@ -76,6 +76,10 @@ void Synthesizer::runAll() {
         for (auto& mod : moduleNames_) {
             fs::path modPath = fs::path(projectDir_) / cfg.name / pionPair_ / runPeriod_ / ("module-out___" + mod);
             auto proc = ModuleProcessorFactory::instance().create(mod);
+            if (!proc) {
+                LOG_WARN("Skipping unregistered processor: " + mod);
+                continue;
+            }
             auto res = proc->process(modPath.string(), cfg);
             allResults_[cfg.name].push_back(res);
         }

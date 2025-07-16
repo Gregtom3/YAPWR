@@ -2,6 +2,7 @@
 #include <string>
 
 #include "Config.h"
+#include "Logger.h"
 #include "Result.h"
 
 /// Base class for all analysis‐module processors

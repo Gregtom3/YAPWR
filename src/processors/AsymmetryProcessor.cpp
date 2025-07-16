@@ -1,5 +1,4 @@
 #include "AsymmetryProcessor.h"
-
 #include <TFile.h>
 #include <TTree.h>
 #include <yaml-cpp/yaml.h>
@@ -16,6 +15,7 @@ namespace {
 std::unique_ptr<ModuleProcessor> make() {
     return std::make_unique<AsymmetryProcessor>();
 }
+// Immediately load this module
 const bool registered = []() {
     ModuleProcessorFactory::instance().registerProcessor("asymmetryPW", make);
     return true;

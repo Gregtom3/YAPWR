@@ -1,9 +1,8 @@
 #pragma once
+#include "ModuleProcessor.h"
 #include <map>
 #include <memory>
 #include <string>
-
-#include "ModuleProcessor.h"
 
 /// Registry of available ModuleProcessor implementations
 class ModuleProcessorFactory {
