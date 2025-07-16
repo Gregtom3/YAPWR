@@ -5,6 +5,7 @@
 #include <yaml-cpp/yaml.h>
 
 Config::Config(const std::string& yamlPath) {
+    setNameFromYamlPath(yamlPath);
     _cfgFile = ConfigFile::loadFromFile(yamlPath);
     _cfgFile.print();
 }

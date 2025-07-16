@@ -1,8 +1,11 @@
+#include "Logger.h"
+#include "Synthesizer.h"
 #include <iostream>
 
-#include "Synthesizer.h"
-
 int main(int argc, char** argv) {
+
+    Logger::setLevel(Logger::Level::Warn);
+
     if (argc != 4) {
         std::cerr << "Usage: " << argv[0] << " <projectDir> <pionPair> <runPeriod>\n";
         return 1;
@@ -11,5 +14,6 @@ int main(int argc, char** argv) {
     synth.discoverConfigs();
     synth.runAll();
     // synth.synthesizeFinal();
+    std::cout << "Done!" << std::endl;
     return 0;
 }

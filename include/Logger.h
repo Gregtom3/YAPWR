@@ -1,6 +1,43 @@
 #pragma once
 #include <iostream>
-#define LOG_INFO(msg) (std::cout << "[INFO] " << msg << "\n")
-#define LOG_WARN(msg) (std::cerr << "[WARN] " << msg << "\n")
-#define LOG_ERROR(msg) (std::cerr << "[ERROR] " << msg << "\n")
-#define LOG_FATAL(msg) throw std::runtime_error(std::string("[FATAL] ") + msg)
+#include <stdexcept>
+
+namespace Logger {
+
+enum class Level { Error = 0, Warn = 1, Info = 2, Debug = 3 };
+
+// default at Info
+inline Level& currentLevel() {
+    static Level lvl = Level::Info;
+    return lvl;
+}
+
+inline void setLevel(Level lvl) {
+    currentLevel() = lvl;
+}
+} // namespace Logger
+
+// now each macro checks the current level first
+#define LOG_INFO(msg)                                      \
+    do {                                                   \
+        if (Logger::currentLevel() >= Logger::Level::Info) \
+            std::cout << "[INFO] " << msg << "\n";         \
+    } while (0)
+
+#define LOG_WARN(msg)                                      \
+    do {                                                   \
+        if (Logger::currentLevel() >= Logger::Level::Warn) \
+            std::cerr << "[WARN] " << msg << "\n";         \
+    } while (0)
+
+#define LOG_ERROR(msg)                                      \
+    do {                                                    \
+        if (Logger::currentLevel() >= Logger::Level::Error) \
+            std::cerr << "[ERROR] " << msg << "\n";         \
+    } while (0)
+
+#define LOG_FATAL(msg)                                           \
+    do { /* always fire */                                       \
+        std::cerr << "[FATAL] " << msg << "\n";                  \
+        throw std::runtime_error(std::string("[FATAL] ") + msg); \
+    } while (0)

@@ -57,7 +57,7 @@ void Synthesizer::discoverConfigs() {
         // Now yamlPath becomes ".../x0.1-0.3.yaml" instead of ".../config_x0.1-0.3.yaml"
         fs::path yamlPath = entry.path() / (folderName + ".yaml");
         if (!fs::exists(yamlPath)) {
-            std::cerr << "[warn] no config YAML for " << entry.path().filename().string() << " (looking for " << yamlPath << ")\n";
+            LOG_WARN("No config YAML for " + entry.path().filename().string() + " (looking for " + yamlPath.string() + ")");
             continue;
         }
 
@@ -74,7 +74,7 @@ void Synthesizer::discoverConfigs() {
 void Synthesizer::runAll() {
     for (auto& cfg : configs_) {
         for (auto& mod : moduleNames_) {
-            fs::path modPath = fs::path(projectDir_) / cfg.name / pionPair_ / runPeriod_ / ("module-out___" + mod);
+            fs::path modPath = "out" / fs::path(projectDir_) / cfg.name / pionPair_ / runPeriod_ / ("module-out___" + mod);
             auto proc = ModuleProcessorFactory::instance().create(mod);
             if (!proc) {
                 LOG_WARN("Skipping unregistered processor: " + mod);
