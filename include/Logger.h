@@ -19,7 +19,7 @@ inline void setLevel(Level lvl) {
 #define LOG_DEBUG(msg)                                      \
     do {                                                    \
         if (Logger::currentLevel() >= Logger::Level::Debug) \
-            std::cout << "[INFO] " << msg << "\n";          \
+            std::cout << "[DEBUG] " << msg << "\n";         \
     } while (0)
 
 #define LOG_INFO(msg)                                      \

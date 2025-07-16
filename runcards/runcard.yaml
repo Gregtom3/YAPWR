@@ -1,9 +1,9 @@
 modules:
-#    - filterTree
-#    - purityBinning
-#    - asymmetry
-#    - kinematicBins
+    - filterTree
+    - purityBinning
+    - asymmetry
+    - kinematicBins
     - baryonContamination
     - particleMisidentification
-#    - binMigration
-#    - asymmetry_sideband
+    - binMigration
+    - asymmetry_sideband

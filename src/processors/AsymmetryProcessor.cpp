@@ -22,7 +22,7 @@ Result AsymmetryProcessor::process(const std::string& outDir, const Config& cfg)
             r.scalars[reg.region + "." + key] = val;
         }
     }
-
+    r.print();
     return r;
 }
 
@@ -58,7 +58,10 @@ std::vector<AsymmetryProcessor::RegionAsym> AsymmetryProcessor::loadData(const s
             const std::string key = kv.first.as<std::string>();
             if (key == "region" || key == "entries")
                 continue;
-
+            if (key == "fit_failed") {
+                LOG_WARN("Fit failed for region: " + reg.region);
+                continue;
+            }
             double value = kv.second.as<double>();
             if (key.size() > 4 && key.substr(key.size() - 4) == "_err")
                 reg.errors[key] = value;

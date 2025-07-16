@@ -47,7 +47,8 @@ static void dumpYamlSection(const std::string& path,
         }
         else {
             if (indentCount > baseIndent) {
-                out << indent << trimmed << "\n";
+                int relIndent = indentCount - baseIndent;
+                out << indent << std::string(relIndent, ' ') << trimmed << "\n";
             }
             else {
                 break;
