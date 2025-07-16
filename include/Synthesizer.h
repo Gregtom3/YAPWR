@@ -31,7 +31,7 @@ private:
     std::string projectDir_, pionPair_, runPeriod_;
     std::vector<Config> configs_;
     std::vector<std::string> moduleNames_ = {
-        "asymmetryPW", "binMigration" /* … add more… */
+        "asymmetryPW", "binMigration", "baryonContamination"
     };
     std::map<std::string, std::vector<Result>> allResults_;
 };
