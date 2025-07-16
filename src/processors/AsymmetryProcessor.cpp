@@ -28,17 +28,17 @@ Result AsymmetryProcessor::process(const std::string& outDir, const Config& cfg)
 
 void AsymmetryProcessor::printAsymmetryResults(const std::vector<AsymmetryProcessor::RegionAsym>& regs) {
     for (const auto& reg : regs) {
-        LOG_INFO("=== Region: " + reg.region + " ===");
-        LOG_INFO("Entries: " + std::to_string(reg.entries));
-        LOG_INFO("Parameters:");
+        LOG_DEBUG("=== Region: " + reg.region + " ===");
+        LOG_DEBUG("Entries: " + std::to_string(reg.entries));
+        LOG_DEBUG("Parameters:");
         for (const auto& kv : reg.params) {
-            LOG_INFO("  " + kv.first + " = " + std::to_string(kv.second));
+            LOG_DEBUG("  " + kv.first + " = " + std::to_string(kv.second));
         }
-        LOG_INFO("Errors:");
+        LOG_DEBUG("Errors:");
         for (const auto& kv : reg.errors) {
-            LOG_INFO("  " + kv.first + " = " + std::to_string(kv.second));
+            LOG_DEBUG("  " + kv.first + " = " + std::to_string(kv.second));
         }
-        LOG_INFO("");
+        LOG_DEBUG("");
     }
 }
 

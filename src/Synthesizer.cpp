@@ -74,6 +74,7 @@ void Synthesizer::discoverConfigs() {
 void Synthesizer::runAll() {
     for (auto& cfg : configs_) {
         for (auto& mod : moduleNames_) {
+            LOG_INFO("Parsing config=" + cfg.name + " , module=" + mod);
             fs::path modPath = "out" / fs::path(projectDir_) / cfg.name / pionPair_ / runPeriod_ / ("module-out___" + mod);
             auto proc = ModuleProcessorFactory::instance().create(mod);
             if (!proc) {

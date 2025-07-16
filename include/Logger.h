@@ -16,8 +16,12 @@ inline void setLevel(Level lvl) {
     currentLevel() = lvl;
 }
 } // namespace Logger
+#define LOG_DEBUG(msg)                                      \
+    do {                                                    \
+        if (Logger::currentLevel() >= Logger::Level::Debug) \
+            std::cout << "[INFO] " << msg << "\n";          \
+    } while (0)
 
-// now each macro checks the current level first
 #define LOG_INFO(msg)                                      \
     do {                                                   \
         if (Logger::currentLevel() >= Logger::Level::Info) \
