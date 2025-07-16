@@ -38,7 +38,7 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
   # --- prepare output directory + yaml path ---
   outdir   = File.join(leaf_dir, "module-out___particleMisidentification")
   FileUtils.mkdir_p(outdir)
-  yaml_path = File.join(outdir, "#{tag}_particleMisidentification.yaml")
+  yaml_path = File.join(outdir, "particleMisidentification.yaml")
 
   puts "[particleMisidentification][#{tag}] #{filtered_tfile} → #{yaml_path}"
 
