@@ -1,12 +1,23 @@
 #pragma once
-#include <yaml-cpp/yaml.h>
-
+#include "ConfigFile.h"
+#include "Logger.h"
+#include <map>
 #include <string>
-
+#include <vector>
+#include <yaml-cpp/yaml.h>
 /// Parsed per‑bin configuration, loaded from YAML
-struct Config {
-  std::string name;   // e.g. "config_x0.1-0.3"
-  YAML::Node params;  // arbitrary parameters from YAML
+class Config {
+public:
+    Config(const std::string& yamlPath);
+    std::string name;
+    void setName(const std::string& _name) {
+        name = _name;
+    }
 
-  static Config loadFromFile(const std::string& yamlPath);
+private:
+    void setNameFromYamlPath(const std::string& yamlPath);
+    ConfigFile getConfigFile() {
+        return _cfgFile;
+    }
+    ConfigFile _cfgFile;
 };
