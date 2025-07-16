@@ -10,3 +10,7 @@ public:
   Result process(const std::string& moduleOutDir,
                  const Config& cfg) override;
 };
+
+protected:
+  bool useMcPeriod() const override { return true; }
+};

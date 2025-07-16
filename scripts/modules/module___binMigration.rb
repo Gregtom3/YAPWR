@@ -47,7 +47,7 @@ Dir
     # Prepare output directory and log file
     outdir   = File.join(leaf_dir, 'module-out___binMigration')
     FileUtils.mkdir_p(outdir)
-    log_file = File.join(outdir, "#{tag}_binMigration.yaml")
+    log_file = File.join(outdir, "binMigration.yaml")
         
     puts "[binMigration][#{tag}]"
     puts "    filtered:    #{filtered}"

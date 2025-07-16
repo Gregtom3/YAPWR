@@ -6,9 +6,12 @@ std::string BinMigrationProcessor::name() const {
 }
 
 Result BinMigrationProcessor::process(const std::string& moduleOutDir, const Config& cfg) {
+    // get the correct path (data --> MC) automatically:
+    std::filesystem::path dir = effectiveOutDir(moduleOutDir);
+    LOG_INFO("Using module-out directory: " + dir.string());
+
     Result r;
     r.moduleName = name();
-    std::string mcPeriod = mapToMcPeriod(moduleOutDir);
     // TODO: open files in moduleOutDir, read data into r.scalars, etc.
     return r;
 }

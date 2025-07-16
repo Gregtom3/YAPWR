@@ -206,7 +206,6 @@ void binMigration(const char* filePath,
                 expr += transformCut(primCuts[i]);
             }
             out << "primary_cuts_expr: \"" << expr << "\"\n";
-            out << "[DEBUG] primary expr = \"" << expr << "\"\n";
             Long64_t nPrim = t->GetEntries(expr.c_str());
             out << "primary_passing:   " << nPrim << "\n\n";
         }
@@ -234,7 +233,6 @@ void binMigration(const char* filePath,
             expr += transformCut(cuts[i]);
         }
         out << "  transformed_expr: \"" << expr << "\"\n";
-        out << "  [DEBUG] other expr = \"" << expr << "\"\n";
         Long64_t nPass = t->GetEntries(expr.c_str());
         out << "  passing:          " << nPass << "\n\n";
     }

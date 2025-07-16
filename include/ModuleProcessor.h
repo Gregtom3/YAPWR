@@ -21,26 +21,29 @@ public:
     virtual Result process(const std::string& moduleOutDir, const Config& cfg) = 0;
 
 protected:
-    /// Grab the runPeriod component from the path:
-    /// parent of "module-out___<modName>"
-    std::string extractRunPeriod(const std::string& moduleOutDir) const {
-        return std::filesystem::path(moduleOutDir)
-            .parent_path() // .../Fall2018_RGA_inbending
-            .filename()    // "Fall2018_RGA_inbending"
-            .string();
-    }
+    /// Modules that want to swap in MC‑period override this to return true.
+    virtual bool useMcPeriod() const { return false; }
 
-    /// Lookup that runPeriod in the Constants::runToMc map
-    /// Returns empty string (and logs a warning) if not found.
-    std::string mapToMcPeriod(const std::string& moduleOutDir) const {
-        auto runPeriod = extractRunPeriod(moduleOutDir);
-        auto it = Constants::runToMc.find(runPeriod);
-        if (it == Constants::runToMc.end()) {
-            LOG_WARN("No MC mapping for runPeriod: " + runPeriod);
-            return "";
+    /// Strip off the last two components (runPeriod + module‑out___name),
+    /// pick data or MC period, then rebuild the full path.
+    std::filesystem::path effectiveOutDir(const std::filesystem::path& moduleOutDir) const {
+        auto leaf       = moduleOutDir.filename();                  // "module-out___<mod>"
+        auto runDirName = moduleOutDir.parent_path().filename().string(); // e.g. "Fall2018_RGA_inbending"
+        auto prefix     = moduleOutDir.parent_path().parent_path(); // everything above runDir
+
+        // decide which period string to use
+        std::string period = runDirName;
+        if (useMcPeriod()) {
+            auto mc = Constants::runToMc.find(runDirName);
+            if (mc == Constants::runToMc.end()) {
+                LOG_WARN("No MC mapping for runPeriod: " + runDirName);
+            } else {
+                period = mc->second;
+                LOG_DEBUG("Mapped runPeriod '" + runDirName +
+                          "' → MC period '" + period + "'");
+            }
         }
-        auto mcPeriod = it->second;
-        LOG_DEBUG("Mapped runPeriod '" + runPeriod + "' --> MC period '" + mcPeriod + "'");
-        return mcPeriod;
+
+        return prefix / period / leaf;
     }
 };
