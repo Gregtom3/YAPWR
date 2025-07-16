@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ModuleProcessor.h"
+#include "Constants.h"
+#include <filesystem>
 
 class BinMigrationProcessor : public ModuleProcessor {
 public:

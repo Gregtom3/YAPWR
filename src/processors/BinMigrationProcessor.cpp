@@ -8,6 +8,7 @@ std::string BinMigrationProcessor::name() const {
 Result BinMigrationProcessor::process(const std::string& moduleOutDir, const Config& cfg) {
     Result r;
     r.moduleName = name();
+    std::string mcPeriod = mapToMcPeriod(moduleOutDir);
     // TODO: open files in moduleOutDir, read data into r.scalars, etc.
     return r;
 }
