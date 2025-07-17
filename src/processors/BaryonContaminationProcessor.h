@@ -8,7 +8,12 @@ namespace fs = std::filesystem;
 class BaryonContaminationProcessor : public ModuleProcessor {
 public:
     std::string name() const override;
-    Result process(const std::string& moduleOutDir, const Config& cfg) override;
+    Result process(const std::string& moduleOutDir, const Config& cfg) override {
+        // Auto‑swap to MC if needed
+        std::filesystem::path dir = effectiveOutDir(moduleOutDir);
+        LOG_INFO("Using module‑out directory: " + dir.string());
+        return loadData(dir);
+    }
 
 protected:
     bool useMcPeriod() const override {
@@ -16,13 +21,5 @@ protected:
     }
 
 private:
-    struct ContaminationData {
-        int total_entries;
-        std::map<int, int> trueparentpid_1;
-        std::map<int, int> trueparentpid_2;
-        std::map<int, int> trueparentparentpid_1;
-        std::map<int, int> trueparentparentpid_2;
-    };
-
-    ContaminationData loadData(const std::string& moduleOutDir) const;
+    Result loadData(const std::filesystem::path& dir) const;
 };
