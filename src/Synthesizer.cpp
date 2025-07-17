@@ -89,6 +89,10 @@ void Synthesizer::runAll() {
             }
 
             auto res = proc->process(modPath.string(), cfg);
+
+            // Debuggable print statement
+            res.print();
+
             allResults_[cfg.name].push_back(res);
             LOG_INFO(" --> Added " + cfg.name + " to allResults\n");
         }

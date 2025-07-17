@@ -49,7 +49,5 @@ Result ParticleMisidentificationProcessor::loadData(const std::filesystem::path&
         }
     }
 
-    // 3) final dump
-    r.print();
     return r;
 }

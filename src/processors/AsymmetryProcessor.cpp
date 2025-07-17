@@ -32,7 +32,6 @@ Result AsymmetryProcessor::loadData(const std::filesystem::path& dir) const {
 
         // 1) record entries
         r.scalars[region + ".entries"] = entries;
-        LOG_DEBUG("Region " + region + " entries = " + std::to_string(entries));
 
         // 2) detect fit_failed and skip parameters if true
         if (auto ff = node["fit_failed"]; ff && ff.as<bool>()) {
@@ -49,11 +48,8 @@ Result AsymmetryProcessor::loadData(const std::filesystem::path& dir) const {
             double value = kv.second.as<double>();
             std::string scalarName = region + "." + key;
             r.scalars[scalarName] = value;
-            LOG_DEBUG("  " + scalarName + " = " + std::to_string(value));
         }
     }
 
-    // 4) final dump
-    r.print();
     return r;
 }

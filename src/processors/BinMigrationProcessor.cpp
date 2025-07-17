@@ -47,7 +47,5 @@ Result BinMigrationProcessor::loadData(const fs::path& dir) const {
         LOG_DEBUG(key + " = " + std::to_string(pass));
     }
 
-    // 4) log the map
-    r.print();
     return r;
 }

@@ -1,4 +1,5 @@
 #include "ConfigFile.h"
+#include "Constants.h"
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
@@ -10,7 +11,7 @@ struct convert<ConfigFile> {
     // Config --> YAML::Node
     static Node encode(const ConfigFile& cfgFile) {
         Node node(NodeType::Map);
-
+        node["bin_variable"] = cfgFile.binVariable;
         for (const auto& [pair, cuts] : cfgFile.cutsByPair) {
             Node cutsNode(NodeType::Sequence);
             for (const auto& c : cuts)
@@ -24,12 +25,17 @@ struct convert<ConfigFile> {
     static bool decode(const Node& node, ConfigFile& cfgFile) {
         if (!node.IsMap())
             return false;
-
+        if (auto bv = node["bin_variable"]; bv && bv.IsScalar()) {
+            cfgFile.binVariable = bv.as<std::string>();
+        } else {
+            cfgFile.binVariable.clear();
+        }
         cfgFile.cutsByPair.clear();
         for (const auto& kv : node) {
             const std::string pair = kv.first.as<std::string>();
+            if (std::find(Constants::validPairs.begin(), Constants::validPairs.end(), pair) == Constants::validPairs.end())
+                continue; // not a pair key
             const Node& cutsNode = kv.second["cuts"];
-
             if (!cutsNode || !cutsNode.IsSequence())
                 return false;
 
@@ -61,6 +67,7 @@ ConfigFile ConfigFile::loadFromFile(const std::string& yamlPath) {
 
 void ConfigFile::print() const {
     LOG_DEBUG("ConfigFile Contents:\n");
+    LOG_DEBUG("bin_variable = " + binVariable);
     for (const auto& [pairName, cuts] : cutsByPair) {
         LOG_DEBUG("Pair: " + pairName);
         LOG_DEBUG("  Cuts:");

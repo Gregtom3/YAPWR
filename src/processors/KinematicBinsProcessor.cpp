@@ -34,8 +34,6 @@ Result KinematicBinsProcessor::process(const std::string& moduleOutDir, const Co
         loadCsv(dir / "background.csv", "background", r);
     }
 
-    // 5) Dump final scalars
-    r.print();
     return r;
 }
 

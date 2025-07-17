@@ -66,7 +66,5 @@ Result NormalizationProcessor::loadData(const fs::path& dir, const Config& cfg) 
     r.scalars["relative_error_nonDisElectrons"] = e.nonDisElectrons;
     r.scalars["relative_error_radiativeCorrections"] = e.radiativeCorrections;
 
-    // Final log of the Result
-    r.print();
     return r;
 }

@@ -47,7 +47,5 @@ Result AsymmetrySidebandProcessor::process(const std::string& outDir, const Conf
         }
     }
 
-    // 5) final dump
-    combined.print();
     return combined;
 }

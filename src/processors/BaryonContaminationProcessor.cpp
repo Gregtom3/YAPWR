@@ -50,7 +50,5 @@ Result BaryonContaminationProcessor::loadData(const std::filesystem::path& dir) 
         }
     }
 
-    // 3) final dump
-    r.print();
     return r;
 }

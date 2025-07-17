@@ -1,3 +1,4 @@
+bin_variable: "Mh"
 piplus_piplus:
   cuts:
     - "Mh>0.6"
