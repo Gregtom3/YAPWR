@@ -1,87 +1,72 @@
 #include "AsymmetryProcessor.h"
-#include <filesystem>
+#include "ModuleProcessorFactory.h"
 #include <yaml-cpp/yaml.h>
+#include <filesystem>
 
-Result AsymmetryProcessor::process(const std::string& outDir, const Config& cfg) {
+namespace {
+  std::unique_ptr<ModuleProcessor> make() {
+    return std::make_unique<AsymmetryProcessor>();
+  }
+  const bool registered = [](){
+    ModuleProcessorFactory::instance()
+      .registerProcessor("asymmetryPW", make);
+    return true;
+  }();
+}
+
+Result AsymmetryProcessor::process(const std::string& outDir,
+                                   const Config& cfg)
+{
+    // 1) Swap to MC‑period if needed
+    std::filesystem::path dir = effectiveOutDir(outDir);
+    LOG_INFO("Using module‑out directory: " + dir.string());
+
+    // 2) Delegate all parsing & flattening to loadData()
+    return loadData(dir);
+}
+
+Result AsymmetryProcessor::loadData(const std::filesystem::path& dir) const
+{
     Result r;
     r.moduleName = name();
 
-    // 1) Parse the YAML into a vector of RegionAsym
-    auto regions = loadData(outDir);
-    printAsymmetryResults(regions);
-    // 2) Flatten into r.scalars, prefixing keys with region name
-    for (auto& reg : regions) {
-        // store entries as well
-        r.scalars[reg.region + ".entries"] = reg.entries;
+    auto yamlPath = dir / "asymmetry_results.yaml";
+    if (!std::filesystem::exists(yamlPath)) {
+        LOG_ERROR("YAML not found: " + yamlPath.string());
+        return r;
+    }
 
-        // store each parameter and its error
-        for (auto& [key, val] : reg.params) {
-            r.scalars[reg.region + "." + key] = val;
+    YAML::Node doc = YAML::LoadFile(yamlPath.string());
+
+    // Loop over each region block
+    for (const auto& node : doc["results"]) {
+        std::string region = node["region"].as<std::string>();
+        int entries       = node["entries"].as<int>();
+
+        // 1) record entries
+        r.scalars[region + ".entries"] = entries;
+        LOG_DEBUG("Region " + region + " entries = " + std::to_string(entries));
+
+        // 2) detect fit_failed and skip parameters if true
+        if (auto ff = node["fit_failed"]; ff && ff.as<bool>()) {
+            LOG_WARN("Fit failed for region: " + region);
+            continue;
         }
-        for (auto& [key, val] : reg.errors) {
-            r.scalars[reg.region + "." + key] = val;
+
+        // 3) record all other keys
+        for (const auto& kv : node) {
+            const std::string key = kv.first.as<std::string>();
+            if (key == "region" || key == "entries" || key == "fit_failed")
+                continue;
+
+            double value = kv.second.as<double>();
+            std::string scalarName = region + "." + key;
+            r.scalars[scalarName] = value;
+            LOG_DEBUG("  " + scalarName + " = " + std::to_string(value));
         }
     }
+
+    // 4) final dump
     r.print();
     return r;
 }
-
-void AsymmetryProcessor::printAsymmetryResults(const std::vector<AsymmetryProcessor::RegionAsym>& regs) {
-    for (const auto& reg : regs) {
-        LOG_DEBUG("=== Region: " + reg.region + " ===");
-        LOG_DEBUG("Entries: " + std::to_string(reg.entries));
-        LOG_DEBUG("Parameters:");
-        for (const auto& kv : reg.params) {
-            LOG_DEBUG("  " + kv.first + " = " + std::to_string(kv.second));
-        }
-        LOG_DEBUG("Errors:");
-        for (const auto& kv : reg.errors) {
-            LOG_DEBUG("  " + kv.first + " = " + std::to_string(kv.second));
-        }
-        LOG_DEBUG("");
-    }
-}
-
-std::vector<AsymmetryProcessor::RegionAsym> AsymmetryProcessor::loadData(const std::string& outDir) {
-    namespace fs = std::filesystem;
-    fs::path yamlPath = fs::path(outDir) / "asymmetry_results.yaml";
-    YAML::Node doc = YAML::LoadFile(yamlPath.string());
-
-    std::vector<RegionAsym> result;
-    for (const auto& node : doc["results"]) {
-        RegionAsym reg;
-        reg.region = node["region"].as<std::string>();
-        reg.entries = node["entries"].as<int>();
-
-        // now iterate the map entries
-        for (const auto& kv : node) {
-            const std::string key = kv.first.as<std::string>();
-            if (key == "region" || key == "entries")
-                continue;
-            if (key == "fit_failed") {
-                LOG_WARN("Fit failed for region: " + reg.region);
-                continue;
-            }
-            double value = kv.second.as<double>();
-            if (key.size() > 4 && key.substr(key.size() - 4) == "_err")
-                reg.errors[key] = value;
-            else
-                reg.params[key] = value;
-        }
-
-        result.push_back(std::move(reg));
-    }
-    return result;
-}
-
-// Register:
-namespace {
-std::unique_ptr<ModuleProcessor> make() {
-    return std::make_unique<AsymmetryProcessor>();
-}
-// Immediately load this module
-const bool registered = []() {
-    ModuleProcessorFactory::instance().registerProcessor("asymmetryPW", make);
-    return true;
-}();
-} // namespace
