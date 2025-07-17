@@ -66,13 +66,14 @@ ConfigFile ConfigFile::loadFromFile(const std::string& yamlPath) {
 }
 
 void ConfigFile::print() const {
-    LOG_DEBUG("ConfigFile Contents:\n");
-    LOG_DEBUG("bin_variable = " + binVariable);
+    LOG_INFO("ConfigFile Contents:\n");
+    LOG_INFO("bin_variable = " + binVariable);
     for (const auto& [pairName, cuts] : cutsByPair) {
-        LOG_DEBUG("Pair: " + pairName);
-        LOG_DEBUG("  Cuts:");
+        LOG_INFO("Pair: " + pairName);
+        LOG_INFO("  Cuts:");
         for (const auto& cut : cuts) {
-            LOG_DEBUG("    - " + cut);
+            LOG_INFO("    - " + cut);
         }
     }
+    
 }

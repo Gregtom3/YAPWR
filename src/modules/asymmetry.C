@@ -185,10 +185,11 @@ void AsymmetryPW::Loop()
           yaml<<"    fit_failed: true\n";
       } else {
           RooArgList p;  std::vector<RooRealVar*> pvec;
+          std::vector<std::string> tvec;
           for(auto& t:termList_){
               auto* v=new RooRealVar(("bkg_"+t.name).c_str(),
                                      ("bkg_"+t.name).c_str(),0.,-2.,2.);
-              p.add(*v); pvec.push_back(v);
+              p.add(*v); pvec.push_back(v); tvec.push_back(t.name);
           }
           RooArgList pdfObs(phi_h,phi_R1,th,hel);
           RooArgList all(pdfObs); all.add(p);
@@ -290,8 +291,8 @@ void AsymmetryPW::Loop()
       );
       if (res && res->status()==0 && res->covQual()>=2){
           for(size_t i=0;i<pvec.size();++i){
-              yaml<<"    "<<pvec[i]->GetName()<<": "<<pvec[i]->getVal()<<"\n";
-              yaml<<"    "<<pvec[i]->GetName()<<"_err: "<<pvec[i]->getError()<<"\n";
+              yaml<<"    "<<tvec[i]->GetName()<<": "<<pvec[i]->getVal()<<"\n";
+              yaml<<"    "<<tvec[i]->GetName()<<"_err: "<<pvec[i]->getError()<<"\n";
           }
       } else yaml<<"    fit_failed: true\n";
       delete res; for(auto* v:pvec) delete v;

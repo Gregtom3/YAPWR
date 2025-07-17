@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "Config.h"
-#include "Result.h"
+#include "Result.h" 
 
 namespace fs = std::filesystem;
 
@@ -31,6 +31,6 @@ private:
     std::string projectDir_, pionPair_, runPeriod_;
     std::vector<Config> configs_;
     std::vector<std::string> moduleNames_ = {"asymmetryPW",   "binMigration",       "baryonContamination", "particleMisidentification",
-                                             "kinematicBins", "asymmetry_sideband", "normalization"};
+                                             "kinematicBins", /*asymmetry_sideband",*/ "normalization"};
     std::map<std::string, std::vector<Result>> allResults_;
 };

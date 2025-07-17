@@ -4,8 +4,8 @@
 
 int main(int argc, char** argv) {
 
-    Logger::setLevel(Logger::Level::Info);
-
+    Logger::setLevel(Logger::Level::Debug);
+ 
     if (argc != 4) {
         std::cerr << "Usage: " << argv[0] << " <projectDir> <pionPair> <runPeriod>\n";
         return 1;

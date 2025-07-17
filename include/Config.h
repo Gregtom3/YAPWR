@@ -34,6 +34,8 @@ public:
         return (_pionPair == "piplus_pi0" || _pionPair == "piminus_pi0");
     }
 
+    void print() const;
+
 private:
     void setMCVersion();
     void setNameFromYamlPath(const std::string& yamlPath);

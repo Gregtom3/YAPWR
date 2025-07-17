@@ -5,7 +5,9 @@
 namespace Logger {
 
 enum class Level { Error = 0, Warn = 1, Info = 2, Debug = 3 };
-
+inline std::string makeBar(size_t length, char fill='=') {
+    return std::string(length, fill);
+}
 constexpr char RESET_COLOR[] = "\x1b[0m";
 constexpr char RED_COLOR[] = "\x1b[31m";
 constexpr char GREEN_COLOR[] = "\x1b[32m";
@@ -22,6 +24,7 @@ inline void setLevel(Level lvl) {
     currentLevel() = lvl;
 }
 } // namespace Logger
+
 #define LOG_DEBUG(msg)                                                                           \
     do {                                                                                         \
         if (Logger::currentLevel() >= Logger::Level::Debug)                                      \
