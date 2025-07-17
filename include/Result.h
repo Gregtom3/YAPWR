@@ -1,7 +1,7 @@
 #pragma once
+#include "Logger.h"
 #include <map>
 #include <string>
-#include "Logger.h"
 
 /// Generic holder for module outputs (errors, histograms, tables…)
 struct Result {
