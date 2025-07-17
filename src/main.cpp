@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
     synth.runAll();
 
     AsymmetryHandler asym(synth.getResults(), synth.getConfigsMap());
-    asym.collectRawAsymmetryData("background", 2, "full");
+    asym.reportAsymmetry("signal_purity_5_5", 2, "full");
 
     std::cout << "Done!" << std::endl;
     return 0;
