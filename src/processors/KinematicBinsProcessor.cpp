@@ -77,9 +77,7 @@ void KinematicBinsProcessor::loadCsv(const fs::path& csvPath, const std::string&
     }
 }
 
-double KinematicBinsProcessor::getBinScalar(const Result& r,
-                                             const std::string& prefix,
-                                             const std::string& field) {
+double KinematicBinsProcessor::getBinScalar(const Result& r, const std::string& prefix, const std::string& field) {
     std::string key = prefix + "___" + field;
     auto it = r.scalars.find(key);
     if (it == r.scalars.end()) {

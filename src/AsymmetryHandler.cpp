@@ -3,13 +3,11 @@
 
 AsymmetryHandler::AsymmetryHandler(const std::map<std::string, std::map<std::string, Result>>& allResults,
                                    const std::map<std::string, Config>& configMap)
-  : asymProc_(), allResults_(allResults), configMap_(configMap) {}
+    : asymProc_()
+    , allResults_(allResults)
+    , configMap_(configMap) {}
 
-
-void AsymmetryHandler::collectRawAsymmetryData(const std::string& region,
-                                               int termIndex,
-                                               const std::string& binPrefix) const
-{
+void AsymmetryHandler::collectRawAsymmetryData(const std::string& region, int termIndex, const std::string& binPrefix) const {
     for (const auto& [cfgName, modules] : allResults_) {
         std::string binField = configMap_.at(cfgName).getBinVariable();
         // 1) Asymmetry coefficient
@@ -32,11 +30,7 @@ void AsymmetryHandler::collectRawAsymmetryData(const std::string& region,
         }
 
         // 3) Debug print both
-        LOG_WARN("[" << cfgName << "] "
-                  << region << ".b_" << termIndex
-                  << " = " << asymVal
-                  << "   |   "
-                  << binPrefix << "___" << binField
-                  << " = " << binVal);
+        LOG_WARN("[" << cfgName << "] " << region << ".b_" << termIndex << " = " << asymVal << "   |   " << binPrefix << "___"
+                     << binField << " = " << binVal);
     }
 }

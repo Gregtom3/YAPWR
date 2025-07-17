@@ -23,8 +23,12 @@ public:
     ///   2. call ModuleProcessorFactory::create(moduleName)->process(...)
     void runAll();
 
-    std::map<std::string, std::map<std::string, Result>> getResults(){return allResults_;}
-    std::map<std::string, Config> getConfigsMap(){return configs_map_;}
+    std::map<std::string, std::map<std::string, Result>> getResults() {
+        return allResults_;
+    }
+    std::map<std::string, Config> getConfigsMap() {
+        return configs_map_;
+    }
 
 private:
     std::string projectDir_, pionPair_, runPeriod_;

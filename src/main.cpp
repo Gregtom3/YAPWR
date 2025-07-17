@@ -1,6 +1,6 @@
+#include "AsymmetryHandler.h"
 #include "Logger.h"
 #include "Synthesizer.h"
-#include "AsymmetryHandler.h"
 #include <iostream>
 
 int main(int argc, char** argv) {
@@ -15,9 +15,9 @@ int main(int argc, char** argv) {
     synth.discoverConfigs();
     synth.runAll();
 
-    AsymmetryHandler asym(synth.getResults(),synth.getConfigsMap());
-    asym.collectRawAsymmetryData("background",2,"full");
-    
+    AsymmetryHandler asym(synth.getResults(), synth.getConfigsMap());
+    asym.collectRawAsymmetryData("background", 2, "full");
+
     std::cout << "Done!" << std::endl;
     return 0;
 }
