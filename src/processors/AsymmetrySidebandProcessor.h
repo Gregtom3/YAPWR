@@ -15,9 +15,6 @@ public:
     Result process(const std::string& outDir, const Config& cfg) override;
 
     bool supportsConfig(const Config& cfg) const override {
-        // only run on these two pion‑pairs
-        auto pp = cfg.getPionPair();
-        return (pp == "piplus_pi0" || pp == "piminus_pi0");
+        return cfg.contains_pi0();
     }
-
 };

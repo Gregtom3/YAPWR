@@ -30,6 +30,10 @@ public:
 
     std::string name;
 
+    bool contains_pi0() const {
+        return (_pionPair == "piplus_pi0" || _pionPair == "piminus_pi0");
+    }
+
 private:
     void setMCVersion();
     void setNameFromYamlPath(const std::string& yamlPath);

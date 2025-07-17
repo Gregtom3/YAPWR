@@ -87,7 +87,7 @@ void Synthesizer::runAll() {
                 LOG_INFO("Skipping processor " + mod + " for pionPair=" + cfg.getPionPair());
                 continue;
             }
-            
+
             auto res = proc->process(modPath.string(), cfg);
             allResults_[cfg.name].push_back(res);
         }
