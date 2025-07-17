@@ -6,10 +6,23 @@
 
 namespace fs = std::filesystem;
 
+/// Processor for “binMigration” that automatically swaps to MC and
+/// parses binMigration.yaml into a Result
 class BinMigrationProcessor : public ModuleProcessor {
 public:
-    std::string name() const override;
-    Result process(const std::string& moduleOutDir, const Config& cfg) override;
+    std::string name() const override {
+        return "binMigration";
+    }
+
+    /// Build the effective dir (data vs MC), then parse YAML into a Result
+    Result process(const std::string& moduleOutDir, const Config& cfg) override {
+        // 1) Compute the right directory (data or MC)
+        fs::path dir = effectiveOutDir(moduleOutDir, cfg);
+        LOG_INFO("Using module-out directory: " + dir.string());
+
+        // 2) Parse YAML + flatten into a Result
+        return loadData(dir);
+    }
 
 protected:
     bool useMcPeriod() const override {
@@ -17,29 +30,6 @@ protected:
     }
 
 private:
-    struct ConfigCuts {
-        std::vector<std::string> cuts;
-    };
-
-    struct OtherConfig {
-        std::string config;
-        ConfigCuts section;
-        std::string transformed_expr;
-        int passing;
-    };
-
-    struct MigrationData {
-        std::string file;
-        std::string tree;
-        int entries;
-        std::string pion_pair;
-        std::string primary_config;
-        ConfigCuts primary_section;
-        std::string primary_cuts_expr;
-        int primary_passing;
-        std::vector<OtherConfig> other_configs;
-    };
-
-    /// Load & parse binMigration.yaml under moduleOutDir
-    MigrationData loadData(const std::string& moduleOutDir) const;
+    /// Load & parse binMigration.yaml under `dir` directly into a Result
+    Result loadData(const fs::path& dir) const;
 };
