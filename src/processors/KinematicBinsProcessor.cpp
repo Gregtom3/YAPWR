@@ -18,7 +18,7 @@ const bool registered = []() {
 
 Result KinematicBinsProcessor::process(const std::string& moduleOutDir, const Config& cfg) {
     // Apply MC‑period swap if enabled in base class
-    std::filesystem::path dir = effectiveOutDir(moduleOutDir);
+    std::filesystem::path dir = effectiveOutDir(moduleOutDir, cfg);
     LOG_INFO("Using module‑out directory: " + dir.string());
     return loadData(dir);
 }

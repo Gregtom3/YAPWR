@@ -7,7 +7,7 @@ std::string BinMigrationProcessor::name() const {
 
 Result BinMigrationProcessor::process(const std::string& moduleOutDir, const Config& cfg) {
     // get the correct path (data --> MC) automatically:
-    std::filesystem::path dir = effectiveOutDir(moduleOutDir);
+    std::filesystem::path dir = effectiveOutDir(moduleOutDir, cfg);
     LOG_INFO("Using module-out directory: " + dir.string());
 
     // Load YAML for BinMigration

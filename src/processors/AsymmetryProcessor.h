@@ -4,9 +4,11 @@
 
 class AsymmetryProcessor : public ModuleProcessor {
 public:
-  std::string name() const override { return "asymmetryPW"; }
-  Result process(const std::string& outDir, const Config& cfg) override;
+    std::string name() const override {
+        return "asymmetryPW";
+    }
+    Result process(const std::string& outDir, const Config& cfg) override;
 
-private:
-  Result loadData(const std::filesystem::path& dir) const;
+protected:
+    Result loadData(const std::filesystem::path& dir) const;
 };

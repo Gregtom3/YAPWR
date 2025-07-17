@@ -1,32 +1,28 @@
 #include "AsymmetryProcessor.h"
 #include "ModuleProcessorFactory.h"
-#include <yaml-cpp/yaml.h>
 #include <filesystem>
+#include <yaml-cpp/yaml.h>
 
 namespace {
-  std::unique_ptr<ModuleProcessor> make() {
+std::unique_ptr<ModuleProcessor> make() {
     return std::make_unique<AsymmetryProcessor>();
-  }
-  const bool registered = [](){
-    ModuleProcessorFactory::instance()
-      .registerProcessor("asymmetryPW", make);
-    return true;
-  }();
 }
+const bool registered = []() {
+    ModuleProcessorFactory::instance().registerProcessor("asymmetryPW", make);
+    return true;
+}();
+} // namespace
 
-Result AsymmetryProcessor::process(const std::string& outDir,
-                                   const Config& cfg)
-{
+Result AsymmetryProcessor::process(const std::string& outDir, const Config& cfg) {
     // 1) Swap to MC‑period if needed
-    std::filesystem::path dir = effectiveOutDir(outDir);
+    std::filesystem::path dir = effectiveOutDir(outDir, cfg);
     LOG_INFO("Using module‑out directory: " + dir.string());
 
     // 2) Delegate all parsing & flattening to loadData()
     return loadData(dir);
 }
 
-Result AsymmetryProcessor::loadData(const std::filesystem::path& dir) const
-{
+Result AsymmetryProcessor::loadData(const std::filesystem::path& dir) const {
     Result r;
     r.moduleName = name();
 
@@ -41,7 +37,7 @@ Result AsymmetryProcessor::loadData(const std::filesystem::path& dir) const
     // Loop over each region block
     for (const auto& node : doc["results"]) {
         std::string region = node["region"].as<std::string>();
-        int entries       = node["entries"].as<int>();
+        int entries = node["entries"].as<int>();
 
         // 1) record entries
         r.scalars[region + ".entries"] = entries;

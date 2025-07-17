@@ -61,7 +61,7 @@ void Synthesizer::discoverConfigs() {
             continue;
         }
 
-        configs_.push_back(Config(yamlPath.string()));
+        configs_.push_back(Config(yamlPath.string(), projectDir_, pionPair_, runPeriod_));
     }
 
     // Ensure we found at least one valid config
