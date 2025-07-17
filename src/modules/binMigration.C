@@ -1,27 +1,23 @@
-#include <TSystem.h>
 #include <TFile.h>
-#include <TTree.h>
+#include <TIterator.h>
+#include <TList.h>
+#include <TSystem.h>
 #include <TSystemDirectory.h>
 #include <TSystemFile.h>
-#include <TList.h>
-#include <TIterator.h>
+#include <TTree.h>
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
+#include <regex>
 #include <string>
 #include <vector>
-#include <regex>
-#include <cstring>
 
 // ------------------------------------------------------------------
 // Dump a YAML section for `key`, preserving indentation.
 // Writes each trimmed line prefixed by `indent` to `out`.
 // ------------------------------------------------------------------
-static void dumpYamlSection(const std::string& path,
-                            const std::string& key,
-                            std::ostream& out,
-                            const std::string& indent = "  ")
-{
+static void dumpYamlSection(const std::string& path, const std::string& key, std::ostream& out, const std::string& indent = "  ") {
     std::ifstream in(path);
     if (!in) {
         out << indent << "# ERROR: cannot open " << path << "\n";
@@ -44,13 +40,11 @@ static void dumpYamlSection(const std::string& path,
                 baseIndent = indentCount;
                 out << indent << trimmed << "\n";
             }
-        }
-        else {
+        } else {
             if (indentCount > baseIndent) {
                 int relIndent = indentCount - baseIndent;
                 out << indent << std::string(relIndent, ' ') << trimmed << "\n";
-            }
-            else {
+            } else {
                 break;
             }
         }
@@ -61,12 +55,11 @@ static void dumpYamlSection(const std::string& path,
 // Parse the list under `key:` → `cuts:` in a YAML file.
 // Returns vector of the raw cut strings (without leading "- " or quotes).
 // ------------------------------------------------------------------
-static std::vector<std::string> parseCuts(const std::string& path,
-                                          const std::string& key)
-{
+static std::vector<std::string> parseCuts(const std::string& path, const std::string& key) {
     std::vector<std::string> cuts;
     std::ifstream in(path);
-    if (!in) return cuts;
+    if (!in)
+        return cuts;
 
     std::string line;
     bool inSection = false, inCuts = false;
@@ -93,14 +86,12 @@ static std::vector<std::string> parseCuts(const std::string& path,
                 inSection = true;
                 baseIndent = indent;
             }
-        }
-        else if (!inCuts) {
+        } else if (!inCuts) {
             if (indent > baseIndent && trimmed.rfind("cuts:", 0) == 0) {
                 inCuts = true;
                 cutsIndent = indent;
             }
-        }
-        else {
+        } else {
             if (indent > cutsIndent && trimmed.rfind("-", 0) == 0) {
                 trim(trimmed);
                 if (!trimmed.empty())
@@ -131,15 +122,13 @@ static std::vector<std::string> findAllConfigYamls(const std::string& projectDir
     std::vector<std::string> yamls;
     TSystemDirectory projD("proj", projectDir.c_str());
     TList* configs = projD.GetListOfFiles();
-    if (!configs) return yamls;
+    if (!configs)
+        return yamls;
 
     TIter cIt(configs);
     while (auto* ent = (TSystemFile*)cIt()) {
         const char* name = ent->GetName();
-        if (!ent->IsDirectory() ||
-            strcmp(name, ".") == 0 ||
-            strcmp(name, "..") == 0 ||
-            strncmp(name, "config_", 7) != 0)
+        if (!ent->IsDirectory() || strcmp(name, ".") == 0 || strcmp(name, "..") == 0 || strncmp(name, "config_", 7) != 0)
             continue;
 
         std::string key = std::string(name).substr(7);
@@ -157,12 +146,7 @@ static std::vector<std::string> findAllConfigYamls(const std::string& projectDir
 //                                      "primary.yaml","out/project",
 //                                      "out/project/report.yaml")'
 // ------------------------------------------------------------------
-void binMigration(const char* filePath,
-                  const char* treeName,
-                  const char* primaryYaml,
-                  const char* projectDir,
-                  const char* yamlPath)
-{
+void binMigration(const char* filePath, const char* treeName, const char* primaryYaml, const char* projectDir, const char* yamlPath) {
     // Ensure output directory exists
     TString outDir = gSystem->DirName(yamlPath);
     gSystem->mkdir(outDir, true);
@@ -175,20 +159,18 @@ void binMigration(const char* filePath,
 
     // 1) Open ROOT file & TTree
     TFile* f = TFile::Open(filePath, "READ");
-    TTree* t = (f && !f->IsZombie())
-               ? dynamic_cast<TTree*>(f->Get(treeName))
-               : nullptr;
+    TTree* t = (f && !f->IsZombie()) ? dynamic_cast<TTree*>(f->Get(treeName)) : nullptr;
     Long64_t totalEntries = t ? t->GetEntries() : 0;
 
     // 2) Top‐level metadata
-    out << "file:    \""    << filePath   << "\"\n";
-    out << "tree:    \""    << treeName   << "\"\n";
-    out << "entries: "      << totalEntries << "\n\n";
+    out << "file:    \"" << filePath << "\"\n";
+    out << "tree:    \"" << treeName << "\"\n";
+    out << "entries: " << totalEntries << "\n\n";
 
     // 3) Derive pionPair
-    const char* leafDir   = gSystem->DirName(filePath);
+    const char* leafDir = gSystem->DirName(filePath);
     const char* parentDir = gSystem->DirName(leafDir);
-    std::string pionPair  = gSystem->BaseName(parentDir);
+    std::string pionPair = gSystem->BaseName(parentDir);
     out << "pion_pair: \"" << pionPair << "\"\n\n";
 
     // 4) PRIMARY YAML section
@@ -203,7 +185,8 @@ void binMigration(const char* filePath,
         if (!primCuts.empty() && t) {
             std::string expr;
             for (size_t i = 0; i < primCuts.size(); ++i) {
-                if (i) expr += " && ";
+                if (i)
+                    expr += " && ";
                 expr += transformCut(primCuts[i]);
             }
             out << "primary_cuts_expr: \"" << expr << "\"\n";
@@ -216,7 +199,8 @@ void binMigration(const char* filePath,
     auto yamls = findAllConfigYamls(projectDir);
     out << "other_configs:\n";
     for (auto& y : yamls) {
-        if (y == primaryYaml) continue;
+        if (y == primaryYaml)
+            continue;
 
         out << "- config: \"" << y << "\"\n";
         out << "  section:\n";
@@ -230,7 +214,8 @@ void binMigration(const char* filePath,
 
         std::string expr;
         for (size_t i = 0; i < cuts.size(); ++i) {
-            if (i) expr += " && ";
+            if (i)
+                expr += " && ";
             expr += transformCut(cuts[i]);
         }
         out << "  transformed_expr: \"" << expr << "\"\n";
@@ -238,7 +223,7 @@ void binMigration(const char* filePath,
         out << "  passing:          " << nPass << "\n\n";
     }
 
-    if (f) f->Close();
+    if (f)
+        f->Close();
     out.close();
 }
-

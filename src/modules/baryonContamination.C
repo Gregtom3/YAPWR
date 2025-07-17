@@ -1,21 +1,19 @@
 // src/baryonContamination.C
-#include <TFile.h>
-#include <TTree.h>
 #include <TBranch.h>
-#include <TSystem.h>
+#include <TFile.h>
 #include <TString.h>
-#include <iostream>
-#include <fstream>
-#include <map>
-#include <vector>
-#include <string>
+#include <TSystem.h>
+#include <TTree.h>
 #include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <string>
+#include <vector>
 
 // Write contamination counts to YAML
-static void writeYaml(const std::string& path,
-                      Long64_t total,
-                      const std::vector<std::string>& branches,
-                      const std::vector<std::map<Int_t,Long64_t>>& counts) {
+static void writeYaml(const std::string& path, Long64_t total, const std::vector<std::string>& branches,
+                      const std::vector<std::map<Int_t, Long64_t>>& counts) {
     std::ofstream out(path);
     if (!out) {
         std::cerr << "[baryonContamination] ERROR: cannot open YAML output " << path << "\n";
@@ -29,9 +27,10 @@ static void writeYaml(const std::string& path,
             continue;
         }
         // sort by descending count
-        std::vector<std::pair<Int_t,Long64_t>> vec(counts[i].begin(), counts[i].end());
-        std::sort(vec.begin(), vec.end(),
-                  [](auto &a, auto &b){ return a.second > b.second; });
+        std::vector<std::pair<Int_t, Long64_t>> vec(counts[i].begin(), counts[i].end());
+        std::sort(vec.begin(), vec.end(), [](auto& a, auto& b) {
+            return a.second > b.second;
+        });
         for (auto& p : vec) {
             out << "  '" << p.first << "': " << p.second << "\n";
         }
@@ -39,9 +38,7 @@ static void writeYaml(const std::string& path,
     out.close();
 }
 
-void baryonContamination(const char* filePath,
-                         const char* treeName,
-                         const char* yamlPath) {
+void baryonContamination(const char* filePath, const char* treeName, const char* yamlPath) {
     // Open ROOT file
     TFile* f = TFile::Open(filePath, "READ");
     if (!f || f->IsZombie()) {
@@ -52,15 +49,14 @@ void baryonContamination(const char* filePath,
     // Get tree
     TTree* t = dynamic_cast<TTree*>(f->Get(treeName));
     if (!t) {
-        std::cerr << "[baryonContamination] ERROR: tree '" << treeName
-                  << "' not found in " << filePath << "\n";
+        std::cerr << "[baryonContamination] ERROR: tree '" << treeName << "' not found in " << filePath << "\n";
         f->Close();
         return;
     }
 
     // Attach MCMatch branch for filtering
-    Int_t  mcMatchVal = 0;
-    bool   hasMCMatch = false;
+    Int_t mcMatchVal = 0;
+    bool hasMCMatch = false;
     if (auto b = t->GetBranch("MCmatch")) {
         hasMCMatch = true;
         t->SetBranchStatus("MCmatch", 1);
@@ -70,13 +66,8 @@ void baryonContamination(const char* filePath,
     }
 
     // Prepare branches and counts
-    std::vector<std::string> branchNames = {
-        "trueparentpid_1",
-        "trueparentpid_2",
-        "trueparentparentpid_1",
-        "trueparentparentpid_2"
-    };
-    std::vector<std::map<Int_t,Long64_t>> counts(branchNames.size());
+    std::vector<std::string> branchNames = {"trueparentpid_1", "trueparentpid_2", "trueparentparentpid_1", "trueparentparentpid_2"};
+    std::vector<std::map<Int_t, Long64_t>> counts(branchNames.size());
     std::vector<Int_t> values(branchNames.size(), 0);
 
     // Enable and attach branches
@@ -94,10 +85,11 @@ void baryonContamination(const char* filePath,
     for (Long64_t entry = 0; entry < nEntries; ++entry) {
         t->GetEntry(entry);
         // skip entries failing MCMatch == 1
-        if (hasMCMatch && mcMatchVal != 1) continue;
+        if (hasMCMatch && mcMatchVal != 1)
+            continue;
         for (size_t i = 0; i < branchNames.size(); ++i) {
             if (t->GetBranch(branchNames[i].c_str())) {
-                counts[i][ values[i] ]++;
+                counts[i][values[i]]++;
             }
         }
     }
