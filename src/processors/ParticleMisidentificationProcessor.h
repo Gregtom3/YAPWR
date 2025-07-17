@@ -12,7 +12,7 @@ public:
     Result process(const std::string& moduleOutDir, const Config& cfg) override {
         // swap in MC‑period if needed (inherited)
         std::filesystem::path dir = effectiveOutDir(moduleOutDir, cfg);
-        LOG_INFO("Using module‑out directory: " + dir.string());
+        LOG_INFO("Using module-out directory: " + dir.string());
         return loadData(dir);
     }
 

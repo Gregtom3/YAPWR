@@ -13,15 +13,6 @@ const bool registered = []() {
 }();
 } // namespace
 
-Result AsymmetryProcessor::process(const std::string& outDir, const Config& cfg) {
-    // 1) Swap to MC‑period if needed
-    std::filesystem::path dir = effectiveOutDir(outDir, cfg);
-    LOG_INFO("Using module‑out directory: " + dir.string());
-
-    // 2) Delegate all parsing & flattening to loadData()
-    return loadData(dir);
-}
-
 Result AsymmetryProcessor::loadData(const std::filesystem::path& dir) const {
     Result r;
     r.moduleName = name();

@@ -9,9 +9,9 @@ struct Result {
     std::map<std::string, double> scalars; // e.g. {"asymmetry": 0.0123}
 
     void print() const {
-        LOG_INFO("=== Result for module: " + moduleName + " ===");
+        LOG_DEBUG("=== Result for module: " + moduleName + " ===");
         for (const auto& [key, val] : scalars) {
-            LOG_INFO("  " + key + " = " + std::to_string(val));
+            LOG_DEBUG("  " + key + " = " + std::to_string(val));
         }
     }
 };

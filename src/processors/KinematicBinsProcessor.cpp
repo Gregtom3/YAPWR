@@ -19,7 +19,7 @@ const bool registered = []() {
 Result KinematicBinsProcessor::process(const std::string& moduleOutDir, const Config& cfg) {
     // 1) Compute data vs MC directory
     fs::path dir = effectiveOutDir(moduleOutDir, cfg);
-    LOG_INFO("Using module‑out directory: " + dir.string());
+    LOG_INFO("Using module-out directory: " + dir.string());
 
     // 2) Prepare the Result
     Result r;
