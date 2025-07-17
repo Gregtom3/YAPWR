@@ -38,10 +38,8 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
     pair = File.basename(File.dirname(leaf))
     filtered = File.join(leaf, File.basename(orig_tfile))
     next unless File.exist?(filtered)
-    puts pair
     next unless pair.include?("pi0")
     next if pair.start_with?("MC_")
-    puts "H" 
     background_regions.each do |bkg|
       # sanitize region for directory and job-name
       sanitized = bkg.

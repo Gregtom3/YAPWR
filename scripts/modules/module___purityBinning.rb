@@ -34,7 +34,7 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
 
     leaf_dir   = File.dirname(info_path)
     pair       = File.basename(File.dirname(leaf_dir))
-
+    next unless pair.include?("pi0")
     # 2) Derive and check the filtered file
     filtered_file = File.join(leaf_dir, File.basename(orig_tfile))
     unless File.exist?(filtered_file)

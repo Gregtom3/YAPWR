@@ -5,7 +5,7 @@
 namespace Logger {
 
 enum class Level { Error = 0, Warn = 1, Info = 2, Debug = 3 };
-inline std::string makeBar(size_t length, char fill='=') {
+inline std::string makeBar(size_t length, char fill = '=') {
     return std::string(length, fill);
 }
 constexpr char RESET_COLOR[] = "\x1b[0m";

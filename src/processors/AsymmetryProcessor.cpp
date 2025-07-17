@@ -22,7 +22,7 @@ Result AsymmetryProcessor::loadData(const std::filesystem::path& dir) const {
         LOG_ERROR("YAML not found: " + yamlPath.string());
         return r;
     }
- 
+
     YAML::Node doc = YAML::LoadFile(yamlPath.string());
 
     // Loop over each region block

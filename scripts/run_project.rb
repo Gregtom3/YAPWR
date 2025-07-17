@@ -146,6 +146,12 @@ config_files.each do |cfg|
     usable = merged_files.reject { |f| File.basename(File.dirname(f)) == 'pi0_pi0' }
     usable = usable.first(options[:maxFiles]) if options[:maxFiles]&.positive?
 
+      
+    # usable = merged_files.reject do |f|
+    #   File.basename(File.dirname(f)) != 'piplus_piminus'
+    # end
+
+      
     usable.each do |fp|
       pair = File.basename(File.dirname(fp))
       tag  = File.basename(fp).split('_merged_cuts_noPmin').first

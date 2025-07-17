@@ -75,5 +75,4 @@ void ConfigFile::print() const {
             LOG_INFO("    - " + cut);
         }
     }
-    
 }
