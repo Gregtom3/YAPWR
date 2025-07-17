@@ -20,6 +20,10 @@ public:
     /// Process one configuration:
     virtual Result process(const std::string& moduleOutDir, const Config& cfg) = 0;
 
+    virtual bool supportsConfig(const Config& cfg) const {
+        return true;
+    }
+
 protected:
     /// Modules that want to swap in MC‑period override this to return true.
     virtual bool useMcPeriod() const {

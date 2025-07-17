@@ -13,4 +13,11 @@ public:
 
     // Override to scan wildcard subdirs instead of a single dir
     Result process(const std::string& outDir, const Config& cfg) override;
+
+    bool supportsConfig(const Config& cfg) const override {
+        // only run on these two pion‑pairs
+        auto pp = cfg.getPionPair();
+        return (pp == "piplus_pi0" || pp == "piminus_pi0");
+    }
+
 };

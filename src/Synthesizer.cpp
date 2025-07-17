@@ -81,6 +81,13 @@ void Synthesizer::runAll() {
                 LOG_WARN("Skipping unregistered processor: " + mod);
                 continue;
             }
+
+            // skip if the processor says it isn’t applicable
+            if (!proc->supportsConfig(cfg)) {
+                LOG_INFO("Skipping processor " + mod + " for pionPair=" + cfg.getPionPair());
+                continue;
+            }
+            
             auto res = proc->process(modPath.string(), cfg);
             allResults_[cfg.name].push_back(res);
         }
