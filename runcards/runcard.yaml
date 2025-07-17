@@ -1,6 +1,6 @@
 modules:
-    - filterTree
-    - purityBinning
+#    - filterTree
+#    - purityBinning
     - asymmetry
     - kinematicBins
     - baryonContamination

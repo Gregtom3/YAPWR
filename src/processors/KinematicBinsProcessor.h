@@ -14,6 +14,11 @@ public:
 
     Result process(const std::string& moduleOutDir, const Config& cfg) override;
 
+    /// Helper: fetch a scalar by prefix and field name (e.g. prefix="full", field="x")
+    static double getBinScalar(const Result& r,
+                               const std::string& prefix,
+                               const std::string& field);
+
 private:
     void loadCsv(const fs::path& csvPath, const std::string& prefix, Result& r) const;
 };

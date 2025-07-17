@@ -23,9 +23,8 @@ public:
     ///   2. call ModuleProcessorFactory::create(moduleName)->process(...)
     void runAll();
 
-    /// After processing, combine all Results to compute global sys/stat errors,
-    /// produce plots (via ROOT), export LaTeX tables, etc.
-    void synthesizeFinal();
+    std::map<std::string, std::map<std::string, Result>> getResults(){return allResults_;}
+    std::map<std::string, Config> getConfigsMap(){return configs_map_;}
 
 private:
     std::string projectDir_, pionPair_, runPeriod_;
@@ -34,4 +33,5 @@ private:
                                              "baryonContamination", "particleMisidentification",
                                              "kinematicBins",       /*asymmetry_sideband",*/ "normalization"};
     std::map<std::string, std::map<std::string, Result>> allResults_;
+    std::map<std::string, Config> configs_map_;
 };

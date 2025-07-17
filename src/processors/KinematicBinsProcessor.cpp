@@ -76,3 +76,15 @@ void KinematicBinsProcessor::loadCsv(const fs::path& csvPath, const std::string&
         }
     }
 }
+
+double KinematicBinsProcessor::getBinScalar(const Result& r,
+                                             const std::string& prefix,
+                                             const std::string& field) {
+    std::string key = prefix + "___" + field;
+    auto it = r.scalars.find(key);
+    if (it == r.scalars.end()) {
+        LOG_ERROR("KinematicBinsProcessor: scalar not found: " + key);
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    return it->second;
+}

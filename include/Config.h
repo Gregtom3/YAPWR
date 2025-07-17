@@ -28,6 +28,10 @@ public:
         return _mcVersion;
     }
 
+    std::string getBinVariable() const {
+        return _cfgFile.binVariable;
+    }
+
     std::string name;
 
     bool contains_pi0() const {

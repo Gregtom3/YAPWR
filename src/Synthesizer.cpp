@@ -3,7 +3,6 @@
 #include <iostream>
 #include <memory>
 
-#include "AsymmetryProcessor.h"
 #include "Logger.h"
 #include "ModuleProcessorFactory.h"
 
@@ -76,6 +75,7 @@ void Synthesizer::discoverConfigs() {
 void Synthesizer::runAll() {
     for (auto& cfg : configs_) {
         cfg.print();
+        configs_map_.emplace(cfg.name, cfg);
         for (auto& mod : moduleNames_) {
             LOG_INFO("Parsing config=" + cfg.name + " , module=" + mod);
             fs::path modPath = "out" / fs::path(projectDir_) / cfg.name / pionPair_ / runPeriod_ / ("module-out___" + mod);
@@ -99,31 +99,5 @@ void Synthesizer::runAll() {
             allResults_[cfg.name][mod] = res;
             LOG_INFO(" --> Added " + cfg.name + " to allResults\n");
         }
-    }
-}
-
-void Synthesizer::synthesizeFinal() {
-    // Create an AsymmetryProcessor to query parameters
-    auto procPtr = ModuleProcessorFactory::instance().create("asymmetryPW");
-    auto* asymProc = dynamic_cast<AsymmetryProcessor*>(procPtr.get());
-    if (!asymProc) {
-        LOG_ERROR("AsymmetryProcessor not available for final synthesis");
-        return;
-    }
-
-    // Loop over each config and log background parameter b_7
-    for (auto& cfg : configs_) {
-        const std::string& cfgName = cfg.name;
-        auto modIt = allResults_.find(cfgName);
-        if (modIt == allResults_.end())
-            continue;
-        auto resIt = modIt->second.find("asymmetryPW");
-        if (resIt == modIt->second.end()) {
-            LOG_WARN("No asymmetryPW result for config " + cfgName);
-            continue;
-        }
-        const Result& result = resIt->second;
-        double b7 = asymProc->getParameterValue(result, "background", 7);
-        LOG_WARN("[" + cfgName + "] background.b_7 = " + std::to_string(b7));
     }
 }
