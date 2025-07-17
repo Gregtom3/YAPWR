@@ -16,6 +16,22 @@ public:
         return loadData(dir);
     }
 
+    enum PARAMETER_TYPE {VALUE, ERROR};
+
+    /// Fetch the fitted coefficient “b_{termIndex}” for a given region.
+    /// region = "background" or e.g. "signal_purity_12_12"
+    double getParameterValue(const Result& r,
+                             const std::string& region,
+                             int termIndex) const;
+
+    /// Fetch the corresponding error “b_{termIndex}_err”
+    double getParameterError(const Result& r,
+                             const std::string& region,
+                             int termIndex) const;
 protected:
     Result loadData(const std::filesystem::path& dir) const;
+    double getParameter(const Result& r,
+                        const std::string& region,
+                        int termIndex,
+                        AsymmetryProcessor::PARAMETER_TYPE ptype) const;
 };
