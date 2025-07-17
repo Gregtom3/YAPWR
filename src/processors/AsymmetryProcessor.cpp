@@ -1,8 +1,8 @@
 #include "AsymmetryProcessor.h"
 #include "ModuleProcessorFactory.h"
 #include <filesystem>
-#include <yaml-cpp/yaml.h>
 #include <limits>
+#include <yaml-cpp/yaml.h>
 
 namespace {
 std::unique_ptr<ModuleProcessor> make() {
@@ -55,29 +55,26 @@ Result AsymmetryProcessor::loadData(const std::filesystem::path& dir) const {
     return r;
 }
 
-double AsymmetryProcessor::getParameter(const Result& r, const std::string& region, int termIndex, AsymmetryProcessor::PARAMETER_TYPE ptype) const
-{
-    
+double AsymmetryProcessor::getParameter(const Result& r, const std::string& region, int termIndex,
+                                        AsymmetryProcessor::PARAMETER_TYPE ptype) const {
+
     std::string key = region + "." + "b_" + std::to_string(termIndex);
-    if (ptype == AsymmetryProcessor::PARAMETER_TYPE::ERROR){
-        key+="_err";
+    if (ptype == AsymmetryProcessor::PARAMETER_TYPE::ERROR) {
+        key += "_err";
     }
-    
+
     auto it = r.scalars.find(key);
     if (it == r.scalars.end()) {
-      LOG_ERROR("AsymmetryProcessor: parameter not found: " + key);
-      return std::numeric_limits<double>::quiet_NaN();
+        LOG_ERROR("AsymmetryProcessor: parameter not found: " + key);
+        return std::numeric_limits<double>::quiet_NaN();
     }
     return it->second;
 }
 
-double AsymmetryProcessor::getParameterValue( const Result& r, const std::string& region, int termIndex) const
-{
-    return getParameter(r,region,termIndex,AsymmetryProcessor::PARAMETER_TYPE::VALUE);
+double AsymmetryProcessor::getParameterValue(const Result& r, const std::string& region, int termIndex) const {
+    return getParameter(r, region, termIndex, AsymmetryProcessor::PARAMETER_TYPE::VALUE);
 }
 
-
-double AsymmetryProcessor::getParameterError(const Result& r, const std::string& region, int termIndex) const
-{
-    return getParameter(r,region,termIndex,AsymmetryProcessor::PARAMETER_TYPE::ERROR);
+double AsymmetryProcessor::getParameterError(const Result& r, const std::string& region, int termIndex) const {
+    return getParameter(r, region, termIndex, AsymmetryProcessor::PARAMETER_TYPE::ERROR);
 }

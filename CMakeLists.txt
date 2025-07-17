@@ -15,6 +15,7 @@ find_package(yaml-cpp REQUIRED)
 include_directories(
   ${CMAKE_SOURCE_DIR}/include
   ${ROOT_INCLUDE_DIRS}
+  src/processors
 )
 
 # Gather all your source files

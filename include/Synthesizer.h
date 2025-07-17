@@ -33,5 +33,5 @@ private:
     std::vector<std::string> moduleNames_ = {"asymmetryPW",         "binMigration",
                                              "baryonContamination", "particleMisidentification",
                                              "kinematicBins",       /*asymmetry_sideband",*/ "normalization"};
-    std::map<std::string, std::vector<Result>> allResults_;
+    std::map<std::string, std::map<std::string, Result>> allResults_;
 };

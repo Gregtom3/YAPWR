@@ -4,7 +4,7 @@
 
 int main(int argc, char** argv) {
 
-    Logger::setLevel(Logger::Level::Debug);
+    Logger::setLevel(Logger::Level::Info);
 
     if (argc != 4) {
         std::cerr << "Usage: " << argv[0] << " <projectDir> <pionPair> <runPeriod>\n";
@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
     Synthesizer synth(argv[1], argv[2], argv[3]);
     synth.discoverConfigs();
     synth.runAll();
-    // synth.synthesizeFinal();
+    synth.synthesizeFinal();
     std::cout << "Done!" << std::endl;
     return 0;
 }
