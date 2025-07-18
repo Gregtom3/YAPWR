@@ -58,4 +58,28 @@ static const std::unordered_map<int, BaryonInfo>& baryonPalette() {
     return table;
 }
 
+/** Display properties for a non‑baryonic particle */
+struct ParticleInfo {
+    int pid;              ///< PDG ID
+    std::string engName;  ///< English name
+    std::string texName;  ///< LaTeX label
+    std::string hexColor; ///< Color‑blind‑safe hex
+};
+
+/** pid → ParticleInfo lookup */
+inline const std::unordered_map<int, ParticleInfo>& particlePalette() {
+    static const std::unordered_map<int, ParticleInfo> tbl = {// pid ,  English name     ,  LaTeX label  ,  colour
+                                                              {11, {11, "Electron", "e^{-}", "#0072B2"}},
+                                                              {-11, {-11, "Positron", "e^{+}", "#56B4E9"}},
+                                                              {22, {22, "Photon", "\\gamma", "#009E73"}},
+                                                              {211, {211, "Pi^{+}", "\\pi^{+}", "#D55E00"}},
+                                                              {-211, {-211, "Pi^{-}", "\\pi^{-}", "#E69F00"}},
+                                                              {2212, {2212, "Proton", "p", "#CC79A7"}},
+                                                              {-2212, {-2212, "Antiproton", "\\bar p", "#F0E442"}},
+                                                              {2112, {2112, "Neutron", "n", "#000000"}},
+                                                              {321, {321, "K^{+}", "K^{+}", "#8E44AD"}},
+                                                              {-321, {-321, "K^{-}", "K^{-}", "#A569BD"}},
+                                                              {130, {130, "K^{0}_{\\,L}", "K^{0}_{L}", "#FF5733"}}};
+    return tbl;
+}
 } // namespace Constants

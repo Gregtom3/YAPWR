@@ -40,6 +40,33 @@ public:
 
     void print() const;
 
+    int getPid1() const {
+        if (_pionPair.find("piplus_") != std::string::npos) {
+            return 211;
+        } else if (_pionPair.find("pi0_") != std::string::npos) {
+            LOG_FATAL("Config caught pid1 == pi0");
+            return -1;
+        } else if (_pionPair.find("piminus_") != std::string::npos) {
+            return -211;
+        } else {
+            LOG_FATAL("[Config::getPid1()] Config does not recognize pion pair");
+            return -1;
+        }
+    }
+
+    int getPid2() const {
+        if (_pionPair.find("_piplus") != std::string::npos) {
+            return 211;
+        } else if (_pionPair.find("_pi0") != std::string::npos) {
+            return 111;
+        } else if (_pionPair.find("_piminus") != std::string::npos) {
+            return -211;
+        } else {
+            LOG_FATAL("[Config::getPid2()] Config does not recognize pion pair");
+            return -1;
+        }
+    }
+
 private:
     void setMCVersion();
     void setNameFromYamlPath(const std::string& yamlPath);

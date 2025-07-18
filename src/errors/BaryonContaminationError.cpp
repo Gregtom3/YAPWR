@@ -10,11 +10,15 @@ double BaryonContaminationError::getRelativeError(const Result& r,
                                                   const std::string& region,
                                                   int pwTerm)
 {
+    const bool isPi0 = cfg_.contains_pi0();
     auto entries = parseBaryonContamination(r);
-    int total_entries = getTotalEntries(r);
+    const int total_entries = getTotalEntries(r);
 
-    bool isPi0 = cfg_.contains_pi0();
-    
+    if (total_entries == 0) {
+        LOG_WARN(errorName() << ": total_entries == 0 → returning 0");
+        return 0.0;
+    }
+
     int totalBaryonParents = 0;
     
     for (const auto& e : entries) {
