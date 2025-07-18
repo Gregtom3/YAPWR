@@ -23,6 +23,7 @@ public:
 
 private:
     AsymmetryProcessor asymProc_;
+    std::vector<std::string> sortedCfgNames_;
     const std::map<std::string, Config> configMap_;
     const std::map<std::string, std::map<std::string, Result>> allResults_;
 };

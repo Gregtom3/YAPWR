@@ -1,27 +1,38 @@
 #include "NormalizationError.h"
 #include "Logger.h"
+#include <cmath>
 
-NormalizationError::NormalizationError(Config& cfg)
-    : cfg_(cfg) {}
+NormalizationError::NormalizationError(Config& cfg) : cfg_(cfg) {}
+
+const std::vector<std::string>& NormalizationError::components()
+{
+    static const std::vector<std::string> list = {
+        "beamPolarization",
+        "nonDisElectrons",
+        "radiativeCorrections"
+    };
+    return list;
+}
 
 double NormalizationError::getRelativeError(const Result& r,
-                                            const std::string& region,
-                                            int pwTerm)
+                                            const std::string& type)
 {
-    // Try per‑term first …
-    std::string key = region + ".b_" + std::to_string(pwTerm) + "_relerr";
+    std::string key = "relative_error_" + type;
     auto it = r.scalars.find(key);
-
-    // … or fall back to a generic scalar "relative_error_normalization"
-    if (it == r.scalars.end()) {
-        key = "relative_error_normalization";
-        it  = r.scalars.find(key);
-    }
-
     if (it != r.scalars.end()) return it->second;
 
-    constexpr double kFallback = 0.03;
-    LOG_WARN("NormalizationError: missing '" << key
-              << "' → defaulting to " << kFallback);
-    return kFallback;
+    LOG_WARN("NormalizationError: missing '" << key << "' – using 0");
+    return 0.0;
+}
+
+double NormalizationError::getRelativeError(const Result& r,
+                                            const std::string& /*region*/,
+                                            int /*pwTerm*/)
+{
+    double sumsq = 0.0;
+    for (const auto& t : components()) {
+        double rel = getRelativeError(r, t);
+        sumsq += rel * rel;
+    }
+    return std::sqrt(sumsq);
 }
