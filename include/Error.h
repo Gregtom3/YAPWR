@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Constants.h"
 #include "Config.h"
-#include "Result.h"
+#include "Constants.h"
 #include "Logger.h"
+#include "Result.h"
 
 // Base class for Error types
 class Error {
@@ -14,4 +14,3 @@ public:
 
     virtual double getError(const Result& r, const std::string& region, int pwTerm) = 0;
 };
-

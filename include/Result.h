@@ -8,10 +8,17 @@ struct Result {
     std::string moduleName;
     std::map<std::string, double> scalars; // e.g. {"asymmetry": 0.0123}
 
-    void print() const {
-        LOG_DEBUG("=== Result for module: " + moduleName + " ===");
-        for (const auto& [key, val] : scalars) {
-            LOG_DEBUG("  " + key + " = " + std::to_string(val));
+    void print(bool force = false) const {
+        if (force == true) {
+            LOG_PRINT("=== Result for module: " + moduleName + " ===");
+            for (const auto& [key, val] : scalars) {
+                LOG_PRINT("  " + key + " = " + std::to_string(val));
+            }
+        } else {
+            LOG_DEBUG("=== Result for module: " + moduleName + " ===");
+            for (const auto& [key, val] : scalars) {
+                LOG_DEBUG("  " + key + " = " + std::to_string(val));
+            }
         }
     }
 };

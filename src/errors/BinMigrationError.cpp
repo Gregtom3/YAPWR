@@ -1,6 +1,9 @@
 #include "BinMigrationError.h"
 #include "Logger.h"
 
+BinMigrationError::BinMigrationError(Config& cfg)
+    : cfg_(cfg) {}
+
 double BinMigrationError::getError(const Result& r,
                                    const std::string& region,
                                    int pwTerm)

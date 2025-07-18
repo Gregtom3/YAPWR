@@ -1,6 +1,9 @@
 #include "NormalizationError.h"
 #include "Logger.h"
 
+NormalizationError::NormalizationError(Config& cfg)
+    : cfg_(cfg) {}
+
 double NormalizationError::getError(const Result& r,
                                     const std::string& region,
                                     int pwTerm)

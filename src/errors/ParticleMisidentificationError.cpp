@@ -1,6 +1,10 @@
 #include "ParticleMisidentificationError.h"
 #include "Logger.h"
 
+ParticleMisidentificationError::ParticleMisidentificationError(Config& cfg)
+    : cfg_(cfg) {}
+
+
 double ParticleMisidentificationError::getError(const Result& r,
                                                 const std::string& region,
                                                 int pwTerm)

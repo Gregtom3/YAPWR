@@ -5,6 +5,7 @@
 namespace Logger {
 
 enum class Level { Error = 0, Warn = 1, Info = 2, Debug = 3 };
+constexpr bool FORCE = true;
 inline std::string makeBar(size_t length, char fill = '=') {
     return std::string(length, fill);
 }
@@ -24,6 +25,12 @@ inline void setLevel(Level lvl) {
     currentLevel() = lvl;
 }
 } // namespace Logger
+
+#define LOG_PRINT(msg)                                                                           \
+    do {                                                                                         \
+        if (true)                                                                                \
+            std::cout << Logger::BLUE_COLOR << "[PRINT] " << Logger::RESET_COLOR << msg << "\n"; \
+    } while (0)
 
 #define LOG_DEBUG(msg)                                                                           \
     do {                                                                                         \
