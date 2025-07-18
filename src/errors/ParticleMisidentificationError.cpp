@@ -5,9 +5,9 @@ ParticleMisidentificationError::ParticleMisidentificationError(Config& cfg)
     : cfg_(cfg) {}
 
 
-double ParticleMisidentificationError::getError(const Result& r,
-                                                const std::string& region,
-                                                int pwTerm)
+double ParticleMisidentificationError::getRelativeError(const Result& r,
+                                                        const std::string& region,
+                                                        int pwTerm)
 {
     const std::string key = region + ".b_" + std::to_string(pwTerm) + "_relerr";
     auto it = r.scalars.find(key);

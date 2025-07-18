@@ -15,9 +15,9 @@ public:
     std::string errorName() const override { return "baryonContamination"; }
 
     /// Return the relative error (e.g. 0.03 means 3 %).
-    double getError(const Result& r,
-                    const std::string& region,
-                    int pwTerm) override;
+    double getRelativeError(const Result& r,
+                            const std::string& region,
+                            int pwTerm) override;
 
 private:
     std::vector<BCEntry> parseBaryonContamination(const Result& r);

@@ -43,16 +43,16 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         NormalizationError normErr(thisConfig);
 
         if (auto it = modules.find("binMigration"); it != modules.end())
-            rBinMig = bmErr.getError(it->second, region, termIndex);
+            rBinMig = bmErr.getRelativeError(it->second, region, termIndex);
 
         if (auto it = modules.find("baryonContamination"); it != modules.end())
-            rBary = bcErr.getError(it->second, region, termIndex);
+            rBary = bcErr.getRelativeError(it->second, region, termIndex);
 
         if (auto it = modules.find("particleMisidentification"); it != modules.end())
-            rMisID = pmErr.getError(it->second, region, termIndex);
+            rMisID = pmErr.getRelativeError(it->second, region, termIndex);
 
         if (auto it = modules.find("normalization"); it != modules.end())
-            rNorm = normErr.getError(it->second, region, termIndex);
+            rNorm = normErr.getRelativeError(it->second, region, termIndex);
 
         //------------------------------------------------------------
         // 3)  Convert to absolute errors & quadrature sum

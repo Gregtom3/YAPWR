@@ -6,29 +6,48 @@
 BaryonContaminationError::BaryonContaminationError(Config& cfg)
     : cfg_(cfg) {}
 
-double BaryonContaminationError::getError(const Result& r,
-                                          const std::string& region,
-                                          int pwTerm)
+double BaryonContaminationError::getRelativeError(const Result& r,
+                                                  const std::string& region,
+                                                  int pwTerm)
 {
-    r.print(Logger::FORCE);
-    const std::string key = region + ".b_" + std::to_string(pwTerm) + "_relerr";
-
-    auto it = r.scalars.find(key);
-    if (it != r.scalars.end()) {
-        return it->second;                 // use the value saved by the processor
-    }
-
-    // Fallback: default to 3% relative error
-    constexpr double kFallback = 0.03;
-    LOG_WARN("BaryonContaminationError: missing '" << key
-              << "' in Result → defaulting to " << kFallback);
-
     auto entries = parseBaryonContamination(r);
+    int total_entries = getTotalEntries(r);
+
+    bool isPi0 = cfg_.contains_pi0();
+    
+    int totalBaryonParents = 0;
     
     for (const auto& e : entries) {
-        LOG_ERROR(e.prefix << "  pid=" << e.pid << "  count=" << e.count);
+        std::string prefix = e.prefix;
+        // Pi0 never appears in the first slot so ignore
+        if(prefix=="trueparentparentpid_1"){
+            continue;
+        }
+        // Only allow certain baryonParents to contribute depending on pi0
+        // skip the following
+        if(isPi0&&prefix=="trueparentpid_2"){
+            continue;
+        }
+        if(!isPi0&&prefix=="trueparentparentpid_2"){
+            continue;
+        }
+
+        
+        int parentpid      = e.pid;
+        int count          = e.count;
+
+        // If parent is a baryon...
+        auto it = Constants::baryonPalette().find(parentpid);
+        if (it != Constants::baryonPalette().end()) {
+            // Add to the total
+            totalBaryonParents+=count;
+        }
     }
-    return kFallback;
+
+    // Calculate relative uncertainty
+    double ratio    = totalBaryonParents*1.0/total_entries;
+    double relError = (ratio)/(1-ratio);
+    return relError;
 }
 
 

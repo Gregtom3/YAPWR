@@ -4,9 +4,9 @@
 NormalizationError::NormalizationError(Config& cfg)
     : cfg_(cfg) {}
 
-double NormalizationError::getError(const Result& r,
-                                    const std::string& region,
-                                    int pwTerm)
+double NormalizationError::getRelativeError(const Result& r,
+                                            const std::string& region,
+                                            int pwTerm)
 {
     // Try per‑term first …
     std::string key = region + ".b_" + std::to_string(pwTerm) + "_relerr";
