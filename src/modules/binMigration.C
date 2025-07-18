@@ -184,7 +184,7 @@ void binMigration(const char* filePath, const char* treeName, const char* primar
     {
         auto primCuts = parseCuts(primaryYaml, pionPair);
         if (!primCuts.empty() && t) {
-            std::string expr;
+            std::string expr = "MCmatch==1 && ";
             for (size_t i = 0; i < primCuts.size(); ++i) {
                 if (i)
                     expr += " && ";
