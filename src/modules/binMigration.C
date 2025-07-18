@@ -112,7 +112,8 @@ static std::vector<std::string> parseCuts(const std::string& path, const std::st
 static const std::regex var_re(R"(\b(?!true|and|or|not)([A-Za-z_][A-Za-z0-9_]*)\b)");
 
 static std::string transformCut(const std::string& in) {
-    return std::regex_replace(in, var_re, "true$1");
+    //return std::regex_replace(in, var_re, "true$1");
+    return in; // 07/18/2025 no changen needed, using split config TTrees based on generated kinematics
 }
 
 // ------------------------------------------------------------------

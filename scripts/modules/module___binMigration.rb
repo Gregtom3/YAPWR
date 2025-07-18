@@ -26,7 +26,7 @@ Dir
     orig_tfile = info.fetch("tfile")
     tree_name  = info.fetch("ttree")
     leaf_dir   = File.dirname(info_path)
-    filtered   = File.join(leaf_dir, File.basename(orig_tfile))
+    filtered =   File.join(leaf_dir, "gen_#{File.basename(orig_tfile)}") # "gen_" added 07/18/2025
 
     unless File.exist?(filtered)
       STDERR.puts "[binMigration][#{tag}] WARNING: filtered file not found: #{filtered}"

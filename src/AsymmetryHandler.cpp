@@ -11,7 +11,7 @@ AsymmetryHandler::AsymmetryHandler(const std::map<std::string, std::map<std::str
 }
 
 // Creates the "sortedCfgNames_" vector
-void AsymmetryHandler::createSortedConfigNames() const {
+void AsymmetryHandler::createSortedConfigNames() {
     std::vector<std::pair<double, std::string>> tmp;
     for (const auto& [cfgName, modules] : allResults_) {
         Config thisConfig = configMap_.at(cfgName);
@@ -36,14 +36,28 @@ void AsymmetryHandler::createSortedConfigNames() const {
         sortedCfgNames_.push_back(name);
 }
 
-void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex, const std::string& binPrefix) const {
+void AsymmetryHandler::initializeAsymmetryMaps(const std::string& region,
+                                               int termIndex) const
+{
     for (const std::string& cfgName : sortedCfgNames_) {
         const auto& modules = allResults_.at(cfgName);
-        std::cout << cfgName << std::endl;
-        //------------------------------------------------------------
-        // 0) Which kinematic field?  (e.g. "x", "Q2", ...)
-        //------------------------------------------------------------
-        Config thisConfig = configMap_.at(cfgName);
+        // --- asymmetry value & stat ---------------------------------
+        auto aIt = modules.find(asymProc_.name());
+        if (aIt == modules.end()) continue;
+        const Result& aRes = aIt->second;
+
+        double A     = asymProc_.getParameterValue (aRes, region, termIndex);
+        double sStat = asymProc_.getParameterError(aRes, region, termIndex);
+        double sSys  = 0.0;
+        asymValue_  [cfgName] = A;
+        asymStatErr_[cfgName] = sStat;
+        asymSysErr_ [cfgName] = sSys;
+    }
+}
+
+std::pair<std::string, double> AsymmetryHandler::getBinInfo(const std::string& cfgName, const std::string& binPrefix) const {
+    const auto& modules = allResults_.at(cfgName);
+    Config thisConfig = configMap_.at(cfgName);
         const std::string binField = thisConfig.getBinVariable();
 
         double binVal = std::numeric_limits<double>::quiet_NaN();
@@ -52,24 +66,36 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         } else {
             LOG_WARN("No kinematicBins result for config " << cfgName);
         }
+    return std::make_pair(binField,binVal);
+}
+
+void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex, const std::string& binPrefix) const {
+
+    // First initialize the Asymmetry map, logging all asymmetry values/statistical errors
+    initializeAsymmetryMaps(region,termIndex);
+
+    // Determination of the systematic errors
+    // Loop over each kinematic bin
+    for (const std::string& cfgName : sortedCfgNames_) {
+        Config thisConfig = configMap_.at(cfgName);
+        const auto& modules = allResults_.at(cfgName);
+        const auto& binInfo = getBinInfo(cfgName,binPrefix);
+        const std::string binField = binInfo.first;
+        const double binVal        = binInfo.second;
         //------------------------------------------------------------
         // 1)  Fetch the asymmetry value and its statistical error
         //------------------------------------------------------------
-        auto aIt = modules.find(asymProc_.name());
-        if (aIt == modules.end()) {
-            LOG_WARN("No asymmetryPW result for config " << cfgName);
-            continue;
-        }
-        const Result& aRes = aIt->second;
-        const double A = asymProc_.getParameterValue(aRes, region, termIndex);
-        const double sStat = asymProc_.getParameterError(aRes, region, termIndex);
-
+        const double A = asymValue_.at(cfgName);
+        const double sStat = asymStatErr_.at(cfgName);
         //------------------------------------------------------------
         // 2)  Grab each systematic contribution (relative errors)
         //------------------------------------------------------------
         double rBinMig = 0.0, rBary = 0.0, rMisID = 0.0;
         BaryonContaminationError bcErr(thisConfig);
-        BinMigrationError bmErr(thisConfig);
+        BinMigrationError bmErr(thisConfig,
+                                configMap_,
+                                sortedCfgNames_,
+                                asymValue_);
         ParticleMisidentificationError pmErr(thisConfig);
         NormalizationError normErr(thisConfig);
 
