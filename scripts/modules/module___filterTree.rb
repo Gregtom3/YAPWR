@@ -42,13 +42,16 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
     root_cmd = "root -l -q src/modules/filterTree.C\\(\\\"#{tfile}\\\",\\\"#{ttree}\\\",\\\"#{cfg}\\\",\\\"#{pair}\\\",\\\"#{outdir}\\\",#{entry_arg}\\)"
 
     puts "Running filterTree on #{tfile} (tree=#{ttree}) -> #{outdir}  [maxEntries=#{entry_arg}]"
-
+      
+    system(root_cmd) or
+      STDERR.puts("ERROR: filterTree failed for #{info_path}")
+      
     if tag.include?("MC")
         root_cmd = "root -l -q src/modules/filterTreeMC.C\\(\\\"#{tfile}\\\",\\\"#{ttree}\\\",\\\"#{cfg}\\\",\\\"#{pair}\\\",\\\"#{outdir}\\\",#{entry_arg}\\)"
         puts "Running filterTreeMC on #{tfile} (tree=#{ttree}) -> #{outdir}  [maxEntries=#{entry_arg}]"
-
+        system(root_cmd) or
+            STDERR.puts("ERROR: filterTree failed for #{info_path}")
     end
-    system(root_cmd) or
-      STDERR.puts("ERROR: filterTree failed for #{info_path}")
+
   end
 end
