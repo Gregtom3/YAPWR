@@ -13,7 +13,7 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region,
 {
     for (const auto& [cfgName, modules] : allResults_) {
         //------------------------------------------------------------
-        // 0) Which kinematic field?  (e.g. “x”, “Q2”, …)
+        // 0) Which kinematic field?  (e.g. "x", "Q2", ...)
         //------------------------------------------------------------
         const std::string binField = configMap_.at(cfgName).getBinVariable();
 
@@ -40,18 +40,22 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region,
         // 2)  Grab each systematic contribution (relative errors)
         //------------------------------------------------------------
         double rBinMig = 0.0, rBary = 0.0, rMisID = 0.0, rNorm = 0.0;
+        BaryonContaminationError bcErr;
+        BinMigrationError bmErr;
+        ParticleMisidentificationError pmErr;
+        NormalizationError normErr;
 
         if (auto it = modules.find("binMigration"); it != modules.end())
-            rBinMig = binMigrationError(it->second, region, termIndex);
+            rBinMig = bmErr.getError(it->second, region, termIndex);
 
         if (auto it = modules.find("baryonContamination"); it != modules.end())
-            rBary   = baryonContaminationError(it->second, region, termIndex);
+            rBary   = bcErr.getError(it->second, region, termIndex);
 
         if (auto it = modules.find("particleMisidentification"); it != modules.end())
-            rMisID  = particleMisIDError(it->second, region, termIndex);
+            rMisID  = pmErr.getError(it->second, region, termIndex);
 
         if (auto it = modules.find("normalization"); it != modules.end())
-            rNorm   = normalizationError(it->second, region, termIndex);
+            rNorm   = normErr.getError(it->second, region, termIndex);
 
         //------------------------------------------------------------
         // 3)  Convert to absolute errors & quadrature sum
@@ -73,8 +77,8 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region,
         LOG_INFO("[" << cfgName << "] "
                  << region << ".b_" << termIndex
                  << " = " << A
-                 << "  ±stat " << sStat
-                 << "  ±sys  " << sSys
+                 << "  +/-stat " << sStat
+                 << "  +/-sys  " << sSys
                  << "  |  " << binPrefix << "___" << binField
                  << " = " << binVal);
 
@@ -83,35 +87,5 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region,
         LOG_INFO("    particleMisID       : rel " << rMisID  << ", abs " << sMisID);
         LOG_INFO("    normalization       : rel " << rNorm   << ", abs " << sNorm);
     }
-}
-
-double AsymmetryHandler::binMigrationError(
-        const Result& /*r*/, const std::string& /*region*/, int /*termIndex*/) const
-{
-    return 0.03;   // ← replace with real logic later
-}
-
-double AsymmetryHandler::baryonContaminationError(
-        const Result& /*r*/, const std::string& /*region*/, int /*termIndex*/) const
-{
-    return 0.03;
-}
-
-double AsymmetryHandler::particleMisIDError(
-        const Result& /*r*/, const std::string& /*region*/, int /*termIndex*/) const
-{
-    return 0.03;
-}
-
-double AsymmetryHandler::kinematicBinsError(
-        const Result& /*r*/, const std::string& /*region*/, int /*termIndex*/) const
-{
-    return 0.03;
-}
-
-double AsymmetryHandler::normalizationError(
-        const Result& /*r*/, const std::string& /*region*/, int /*termIndex*/) const
-{
-    return 0.03;
 }
 

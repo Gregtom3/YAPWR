@@ -16,12 +16,14 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/include
   ${ROOT_INCLUDE_DIRS}
   src/processors
+  src/errors
 )
 
 # Gather all your source files
 file(GLOB SRC
   src/*.cpp
   src/processors/*.cpp
+  src/errors/*.cpp
 )
 
 # Define the executable

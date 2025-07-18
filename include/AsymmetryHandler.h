@@ -4,6 +4,10 @@
 #include "Config.h"
 #include "KinematicBinsProcessor.h"
 #include "Result.h"
+#include "BaryonContaminationError.h"
+#include "ParticleMisidentificationError.h"
+#include "BinMigrationError.h"
+#include "NormalizationError.h"
 #include <map>
 #include <string>
 
@@ -16,26 +20,6 @@ public:
     void reportAsymmetry(const std::string& region,
                          int termIndex,
                          const std::string& binPrefix) const;
-
-    double binMigrationError        (const Result& r,
-                                     const std::string& region,
-                                     int termIndex) const;
-
-    double baryonContaminationError (const Result& r,
-                                     const std::string& region,
-                                     int termIndex) const;
-
-    double particleMisIDError       (const Result& r,
-                                     const std::string& region,
-                                     int termIndex) const;
-
-    double kinematicBinsError       (const Result& r,
-                                     const std::string& region,
-                                     int termIndex) const;
-
-    double normalizationError       (const Result& r,
-                                     const std::string& region,
-                                     int termIndex) const;
 
     void collectSystematics(const std::string& region,
                             int termIndex,
