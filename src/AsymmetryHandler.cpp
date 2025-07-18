@@ -7,6 +7,11 @@ AsymmetryHandler::AsymmetryHandler(const std::map<std::string, std::map<std::str
     , allResults_(allResults)
     , configMap_(configMap) {
 
+    createSortedConfigNames();
+}
+
+// Creates the "sortedCfgNames_" vector
+void AsymmetryHandler::createSortedConfigNames() const {
     std::vector<std::pair<double, std::string>> tmp;
     for (const auto& [cfgName, modules] : allResults_) {
         Config thisConfig = configMap_.at(cfgName);
@@ -34,6 +39,7 @@ AsymmetryHandler::AsymmetryHandler(const std::map<std::string, std::map<std::str
 void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex, const std::string& binPrefix) const {
     for (const std::string& cfgName : sortedCfgNames_) {
         const auto& modules = allResults_.at(cfgName);
+        std::cout << cfgName << std::endl;
         //------------------------------------------------------------
         // 0) Which kinematic field?  (e.g. "x", "Q2", ...)
         //------------------------------------------------------------

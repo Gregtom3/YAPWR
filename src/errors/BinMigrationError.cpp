@@ -8,6 +8,7 @@ double BinMigrationError::getRelativeError(const Result& r,
                                            const std::string& region,
                                            int pwTerm)
 {
+    r.print(Logger::FORCE);
     const std::string key = region + ".b_" + std::to_string(pwTerm) + "_relerr";
     auto it = r.scalars.find(key);
     if (it != r.scalars.end()) return it->second;

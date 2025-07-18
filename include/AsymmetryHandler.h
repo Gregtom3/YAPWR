@@ -21,6 +21,9 @@ public:
 
     void collectSystematics(const std::string& region, int termIndex, const std::string& binPrefix) const;
 
+protected:
+    void createSortedConfigNames() const;
+
 private:
     AsymmetryProcessor asymProc_;
     std::vector<std::string> sortedCfgNames_;
