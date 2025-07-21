@@ -139,7 +139,14 @@ config_files.each do |cfg|
   end
   FileUtils.mkdir_p(cfg_dir)
   FileUtils.cp(cfg, cfg_dir) unless options[:append]
+  unless options[:append]
+    cfg_yaml            = YAML.load_file(cfg)
+    cfg_yaml['num_entries'] =
+      options[:maxEntries].nil? ? -1 : options[:maxEntries]
 
+    File.write(File.join(cfg_dir, File.basename(cfg)),
+               cfg_yaml.to_yaml)
+  end
   unless options[:append]
     File.write(File.join(cfg_dir, 'volatile_project.txt'), VOLATILE_PROJECT)
 
