@@ -174,14 +174,42 @@ def invoke(name, *args)
   system(*args) or abort "#{name} failed"
 end
 
+# ---------- wait until a list of Slurm jobs is done ----------------
+def wait_for_slurm_jobs(ids, poll = 60)
+  return if ids.empty?
+  puts "[run_project] Waiting for filterTree jobs #{ids.join(',')} …"
+  loop do
+    # `squeue -h` prints nothing when all jobs are gone
+    break if `squeue -h -j #{ids.join(',')}`.strip.empty?
+    sleep poll
+  end
+  puts "[run_project] …all filterTree jobs finished"
+end
+
 asym_ids = []
 
 modules.each do |mod|
   case mod
   when 'filterTree'
-      args = ['ruby','./scripts/modules/module___filterTree.rb', project_name]
-      args << options[:maxEntries].to_s if options[:maxEntries]
-      invoke('filterTree', *args)
+      if options[:is_running_on_slurm]
+        # run in Slurm‑fan‑out mode and capture job‑IDs
+        cmd = ['ruby','./scripts/modules/module___filterTree.rb',
+               '--slurm', project_name]
+        cmd << options[:maxEntries].to_s if options[:maxEntries]
+        out = `#{cmd.shelljoin}`
+        puts out
+    
+        filter_ids = []
+        out.each_line.grep(/\[SLURM_JOBS\]/) { |ln| filter_ids += ln.split.last.split(/,/) }
+    
+        # BLOCK here until every filterTree job is done
+        wait_for_slurm_jobs(filter_ids)
+      else
+        # immediate, non‑Slurm execution
+        args = ['ruby','./scripts/modules/module___filterTree.rb', project_name]
+        args << options[:maxEntries].to_s if options[:maxEntries]
+        invoke('filterTree', *args)
+  end
 
   when 'purityBinning'
     invoke('purityBinning',
