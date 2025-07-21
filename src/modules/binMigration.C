@@ -78,7 +78,6 @@ static std::vector<std::string> parseCuts(const std::string& path, const std::st
     };
 
     while (std::getline(in, line)) {
-        cout << line << endl;
         int indent = 0;
         while (indent < (int)line.size() && line[indent] == ' ')
             ++indent;
@@ -166,7 +165,7 @@ void binMigration(const char* filePath, const char* treeName, const char* primar
     TFile* f = new TFile(filePath, "READ");
     TTree* t = f->Get<TTree>(treeName);
     util::loadEntryList(t, primaryYaml, true);
-    Long64_t totalEntries = t ? t->GetEntries("") : 0;
+    Long64_t totalEntries = t ? t->GetEntries("MCmatch==1") : 0;
 
     // 2) Top‐level metadata
     out << "file:    \"" << filePath << "\"\n";
