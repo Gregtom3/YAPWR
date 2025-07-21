@@ -4,7 +4,7 @@
 
 class SidebandRegionError : public Error {
 public:
-    explicit SidebandRegionError(const Config& cfg);
+    SidebandRegionError(const Config& cfg, const double asymValue);
 
     std::string errorName() const override { return "sidebandRegion"; }
 
@@ -13,5 +13,6 @@ public:
                             int                pwTerm) override;
 
 private:
-    const Config& cfg_;     
+    const Config& cfg_;    
+    const double asymValue_;
 };

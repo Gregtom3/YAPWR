@@ -1,9 +1,11 @@
 #include "SidebandRegionError.h"
 #include "Logger.h"
+#include <numeric>  
+#include <cmath>   
 #include <iomanip>
-
-SidebandRegionError::SidebandRegionError(const Config& cfg)
+SidebandRegionError::SidebandRegionError(const Config& cfg, const double asymValue)
   : cfg_(cfg)
+  , asymValue_(asymValue)
 {
 }
 
@@ -11,39 +13,46 @@ double SidebandRegionError::getRelativeError(const Result&      r,
                                              const std::string& region,
                                              int                pwTerm)
 {
-
-    //r.print(Logger::FORCE);
-
-    // Only process pi0
-    if(!cfg_.contains_pi0()){
-        LOG_INFO("Skipping SidebandRegionError for non-Pi0 dihadron");
-        return 0.00;
+    // Only relevant for π0 dihadron configs
+    if (!cfg_.contains_pi0()) {
+        LOG_INFO("SidebandRegionError: skipping non‑π0 config");
+        return 0.0;
     }
 
-    const std::string termTag = ".b_" + std::to_string(pwTerm);
+    const std::string tag = ".b_" + std::to_string(pwTerm);
 
-    std::vector<std::pair<std::string,double>> matches;
-
+    std::vector<double> vals;
     for (const auto& [key, val] : r.scalars) {
-        if (key.find(region) == std::string::npos)      continue;
-        if (key.find(termTag)  == std::string::npos)      continue;
-        if (key.find("_err")   != std::string::npos)      continue;
+        if (key.find(region) == std::string::npos) continue; // e.g. "signal"
+        if (key.find(tag)    == std::string::npos) continue; // ".b_n"
+        if (key.find("_err") != std::string::npos) continue; // skip errors
 
-        matches.emplace_back(key, val);
+        vals.push_back(val);
+        LOG_DEBUG("Sideband match : " << key << " = "
+                 << std::setprecision(6) << val);
     }
 
-    // log the discovered values
-    if (matches.empty()) {
-        LOG_WARN("SidebandRegionError: no side‑band keys found for b_"
-                 << pwTerm);
-    } else {
-        for (const auto& [k, v] : matches) {
-            LOG_WARN("SidebandRegionError: " << k << " = "
-                     << std::setprecision(6) << v);
-        }
+    const std::size_t N = vals.size();
+    if (N < 2) {
+        LOG_WARN("SidebandRegionError: less than two side‑band values for b_"
+                 << pwTerm << " → returning 0");
+        return 0.0;
     }
 
-    // ── placeholder until proper calculation is added ─────────────
-    constexpr double kFallback = 0.04;
-    return kFallback;
+    // mean
+    const double mean = std::accumulate(vals.begin(), vals.end(), 0.0) / N;
+
+    // variance
+    double ssq = 0.0;
+    for (double v : vals) ssq += (v - mean) * (v - mean);
+    const double sigma = std::sqrt(ssq / (N - 1));   // unbiased σ
+
+    // relative uncertainty
+    const double rel = (asymValue_ != 0.0) ? sigma / std::fabs(asymValue_) : 0.0;
+
+    LOG_DEBUG("SidebandRegionError: mean=" << mean
+             << "  sigma=" << sigma
+             << "  rel=" << rel);
+
+    return rel; 
 }

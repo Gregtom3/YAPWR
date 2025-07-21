@@ -17,7 +17,7 @@ public:
     /// Relative error for one region / PW‑term
     double getRelativeError(const Result&      r,
                             const std::string& region,
-                            int                pwTerm) override;
+                            int                pwTerm);
 
 private:
     const Config&                                   cfg_;

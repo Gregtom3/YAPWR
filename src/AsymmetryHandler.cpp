@@ -98,7 +98,7 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         BinMigrationError bmErr(thisConfig, configMap_, sortedCfgNames_, asymValue_, allBinMig);
         ParticleMisidentificationError pmErr(thisConfig);
         NormalizationError normErr(thisConfig);
-        SidebandRegionError sregErr(thisConfig);
+        SidebandRegionError sregErr(thisConfig,A);
 
         if (auto it = modules.find("binMigration"); it != modules.end())
             rBinMig = bmErr.getRelativeError(it->second, region, termIndex);
