@@ -8,6 +8,7 @@
 #include "NormalizationError.h"
 #include "ParticleMisidentificationError.h"
 #include "Result.h"
+#include "SidebandRegionError.h"
 #include <fstream>
 #include <iostream>
 #include <map>

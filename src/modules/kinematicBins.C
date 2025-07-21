@@ -78,7 +78,7 @@ static void writeCsv(TTree* t, const std::vector<TLeaf*>& leaves, const char* cu
 
         for (size_t j = 0; j < leaves.size(); ++j)
             sum[j] += leaves[j]->GetValue();
-        
+
         double th = t->GetLeaf("th") ? t->GetLeaf("th")->GetValue() : 0;
         double ct = std::cos(th), st = std::sin(th);
         Sp00 += 1.0;
@@ -126,8 +126,6 @@ void kinematicBins(const char* file, const char* treeName, const char* pair, con
         std::cerr << "[kinBins] tree " << treeName << " missing\n";
         return;
     }
-
-
 
     gSystem->mkdir(outDir, true);
     auto leaves = numericLeaves(t);

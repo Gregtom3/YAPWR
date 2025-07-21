@@ -74,7 +74,7 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
     initializeAsymmetryMaps(region, termIndex);
 
     // Second, initialize the map for the full bin migration
-    std::unordered_map<std::string,const Result*> allBinMig;
+    std::unordered_map<std::string, const Result*> allBinMig;
     for (auto& [cfgName, modules] : allResults_)
         allBinMig[cfgName] = &modules.at("binMigration");
     // Determination of the systematic errors
@@ -93,11 +93,12 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         //------------------------------------------------------------
         // 2)  Grab each systematic contribution (relative errors)
         //------------------------------------------------------------
-        double rBinMig = 0.0, rBary = 0.0, rMisID = 0.0;
+        double rBinMig = 0.0, rBary = 0.0, rMisID = 0.0, rSreg;
         BaryonContaminationError bcErr(thisConfig);
-        BinMigrationError bmErr(thisConfig, configMap_, sortedCfgNames_, asymValue_,allBinMig);
+        BinMigrationError bmErr(thisConfig, configMap_, sortedCfgNames_, asymValue_, allBinMig);
         ParticleMisidentificationError pmErr(thisConfig);
         NormalizationError normErr(thisConfig);
+        SidebandRegionError sregErr(thisConfig);
 
         if (auto it = modules.find("binMigration"); it != modules.end())
             rBinMig = bmErr.getRelativeError(it->second, region, termIndex);
@@ -107,6 +108,9 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
 
         if (auto it = modules.find("particleMisidentification"); it != modules.end())
             rMisID = pmErr.getRelativeError(it->second, region, termIndex);
+
+        if (auto it = modules.find("sidebandRegion"); it != modules.end())
+            rSreg = sregErr.getRelativeError(it->second, region, termIndex);
 
         // ----- Normalization pieces -----
         std::map<std::string, double> rNorm;
