@@ -5,6 +5,8 @@
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 
+const std::vector<std::string>& keepBranches = {"x","Q2","y","hel","eps","Mh","M2","phi_h","phi_R1","th","z","xF","Mx","pTtot"}
+
 void filterTree(const char* inputPath, const char* treeName, const char* configPath, const char* pairName, const char* outputDir,
                 Int_t maxEntries = -1) {
     // 1) Read YAML
@@ -18,9 +20,17 @@ void filterTree(const char* inputPath, const char* treeName, const char* configP
     }
     std::cerr << "Selection: " << selection << "\n";
 
-    // 2) Open input
+    // 2a) Open input
     TFile* inF = TFile::Open(inputPath, "READ");
     TTree* inT = (TTree*)inF->Get(treeName);
+    
+    // 2b) Keep only desired branches  ---------------------------------------
+    inT->SetBranchStatus("*", 0);             // disable all
+    if (keepBranches.empty()) {
+        std::cerr << "WARNING: keepBranches is empty; output tree will be empty\n";
+    }
+    for (const auto& br : keepBranches)
+        inT->SetBranchStatus(br.c_str(), 1);  // enable requested ones
 
     // 3) Prepare output file *first* and cd into it
     std::string fname = gSystem->BaseName(inputPath);
