@@ -8,9 +8,9 @@
 #include "KinematicBinsProcessor.h"
 #include "NormalizationError.h"
 #include "ParticleMisidentificationError.h"
+#include "PurityBinningError.h"
 #include "Result.h"
 #include "SidebandRegionError.h"
-#include "PurityBinningError.h"
 #include <fstream>
 #include <iostream>
 #include <map>

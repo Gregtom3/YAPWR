@@ -2,3 +2,4 @@
 build/
 run-clang.sh
 test.yaml
+configs/pw_paper

@@ -98,9 +98,9 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         BinMigrationError bmErr(thisConfig, configMap_, sortedCfgNames_, asymValue_, allBinMig);
         ParticleMisidentificationError pmErr(thisConfig);
         NormalizationError normErr(thisConfig);
-        SidebandRegionError sregErr(thisConfig,A);
-        PurityBinningError pbinErr(thisConfig,A);
-        
+        SidebandRegionError sregErr(thisConfig, A);
+        PurityBinningError pbinErr(thisConfig, A);
+
         if (auto it = modules.find("binMigration"); it != modules.end())
             rBinMig = bmErr.getRelativeError(it->second, region, termIndex);
 
@@ -112,7 +112,7 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
 
         if (auto it = modules.find("sidebandRegion"); it != modules.end())
             rSreg = sregErr.getRelativeError(it->second, region, termIndex);
-        
+
         if (auto it = modules.find("sidebandRegion"); it != modules.end()) // use the sidebandRegion Result again for purityBinning
             rPbin = pbinErr.getRelativeError(it->second, region, termIndex);
 
@@ -136,7 +136,8 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         const double sNormAbs = aAbs * sNormTotal;
         const double sSreg = aAbs * rSreg;
         const double sPbin = aAbs * rPbin;
-        const double sSys = std::sqrt(sBinMig * sBinMig + sBary * sBary + sMisID * sMisID + sNormAbs * sNormAbs + sSreg * sSreg + sPbin*sPbin);
+        const double sSys =
+            std::sqrt(sBinMig * sBinMig + sBary * sBary + sMisID * sMisID + sNormAbs * sNormAbs + sSreg * sSreg + sPbin * sPbin);
 
         // ---------- 4) print summary --------------------------------
         LOG_INFO("[" << cfgName << "] " << region << ".b_" << termIndex << " = " << A << "  +/-stat " << sStat << "  +/-sys  " << sSys
