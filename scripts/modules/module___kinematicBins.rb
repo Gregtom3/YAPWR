@@ -23,7 +23,7 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |cfg|
     outdir = File.join(leaf, "module-out___kinematicBins")
     FileUtils.mkdir_p(outdir)
     # Ascend from leaf to the config_<NAME> dir
-    cfg_dir   = leaf_dir
+    cfg_dir   = leaf
     cfg_dir   = File.dirname(cfg_dir) until File.basename(cfg_dir).start_with?("config_")
     cfg_name  = File.basename(cfg_dir).sub(/^config_/, '')
     primary_yaml = File.join(cfg_dir, "#{cfg_name}.yaml")
