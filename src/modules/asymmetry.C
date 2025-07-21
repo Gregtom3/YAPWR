@@ -217,6 +217,7 @@ void AsymmetryPW::Loop() {
             if (res && res->status() == 0 && res->covQual() >= 2) {
                 for (size_t i = 0; i < pvec.size(); ++i) {
                     yaml << "    " << tvec.at(i) << ": " << pvec[i]->getVal() << "\n";
+                    bkgVal.at(i) = pvec[i]->getVal();
                     yaml << "    " << tvec.at(i) << "_err: " << pvec[i]->getError() << "\n";
                 }
             } else
