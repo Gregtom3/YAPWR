@@ -115,7 +115,7 @@ double BinMigrationError::getRelativeError(const Result&      rSelf,
     std::ostringstream msg;
     msg << "BinMigration ΔA_" << cfg_.name << " = " << dbg.str()
         << " = " << deltaA << "   (|ΔA|/|A| = " << relError << ')';
-    LOG_WARN(msg.str());
+    LOG_DEBUG(msg.str());
     
     return relError;
 }
