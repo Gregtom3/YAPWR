@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+#include "TreeManager.C"
+
 // Write contamination counts to YAML
 static void writeYaml(const std::string& path, Long64_t total, const std::vector<std::string>& branches,
                       const std::vector<std::map<Int_t, Long64_t>>& counts) {
@@ -38,21 +40,10 @@ static void writeYaml(const std::string& path, Long64_t total, const std::vector
     out.close();
 }
 
-void baryonContamination(const char* filePath, const char* treeName, const char* yamlPath) {
-    // Open ROOT file
-    TFile* f = TFile::Open(filePath, "READ");
-    if (!f || f->IsZombie()) {
-        std::cerr << "[baryonContamination] ERROR: cannot open file " << filePath << "\n";
-        return;
-    }
-
-    // Get tree
-    TTree* t = dynamic_cast<TTree*>(f->Get(treeName));
-    if (!t) {
-        std::cerr << "[baryonContamination] ERROR: tree '" << treeName << "' not found in " << filePath << "\n";
-        f->Close();
-        return;
-    }
+void baryonContamination(const char* filePath, const char* treeName, const char* cutYamlPath, const char* outYamlPath) {
+    TFile* f = new TFile(filePath, "READ");
+    TTree* t = f->Get<TTree>(treeName);
+    util::loadEntryList(t, cutYamlPath);
 
     // Attach MCMatch branch for filtering
     Int_t mcMatchVal = 0;
@@ -80,7 +71,7 @@ void baryonContamination(const char* filePath, const char* treeName, const char*
     }
 
     // Loop entries
-    Long64_t nEntries = t->GetEntries();
+    Long64_t nEntries = t->GetEntries("");
     Long64_t nEntries_good = t->GetEntries("MCmatch==1");
     for (Long64_t entry = 0; entry < nEntries; ++entry) {
         t->GetEntry(entry);
@@ -95,11 +86,11 @@ void baryonContamination(const char* filePath, const char* treeName, const char*
     }
 
     // Ensure YAML directory exists
-    TString dir = gSystem->DirName(yamlPath);
+    TString dir = gSystem->DirName(outYamlPath);
     gSystem->mkdir(dir, true);
 
     // Write YAML
-    writeYaml(yamlPath, nEntries_good, branchNames, counts);
+    writeYaml(outYamlPath, nEntries_good, branchNames, counts);
 
     f->Close();
 }

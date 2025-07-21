@@ -21,6 +21,8 @@
 #include <string>
 #include <vector>
 
+#include "TreeManager.C"
+
 // ---------- helper: numeric leaves --------------------------------
 static std::vector<TLeaf*> numericLeaves(TTree* t) {
     std::vector<TLeaf*> v;
@@ -59,7 +61,7 @@ static void writeCsv(TTree* t, const std::vector<TLeaf*>& leaves, const char* cu
     if (cut && *cut)
         form.reset(new TTreeFormula("sel", cut, t));
 
-    const Long64_t nTot = t->GetEntries();
+    const Long64_t nTot = t->GetEntries("");
     Long64_t nKept = 0;
 
     std::vector<double> sum(leaves.size(), 0.0);
@@ -109,7 +111,8 @@ static void writeCsv(TTree* t, const std::vector<TLeaf*>& leaves, const char* cu
 }
 
 // ---------- macro entry -------------------------------------------
-void kinematicBins(const char* file, const char* treeName, const char* pair, const char* outDir) {
+void kinematicBins(const char* file, const char* treeName, const char* pair, const char* cutYamlPath, const char* outDir) {
+
     TFile f(file, "READ");
     if (f.IsZombie()) {
         std::cerr << "[kinBins] bad file " << file << "\n";
@@ -120,6 +123,8 @@ void kinematicBins(const char* file, const char* treeName, const char* pair, con
         std::cerr << "[kinBins] tree " << treeName << " missing\n";
         return;
     }
+
+    util::loadEntryList(t, cutYamlPath);
 
     gSystem->mkdir(outDir, true);
     auto leaves = numericLeaves(t);

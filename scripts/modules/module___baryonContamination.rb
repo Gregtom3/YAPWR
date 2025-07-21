@@ -35,11 +35,17 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
   FileUtils.mkdir_p(outdir)
   log_file = File.join(outdir, "baryonContamination.yaml")
 
+  # Ascend from leaf to the config_<NAME> dir
+  cfg_dir   = leaf_dir
+  cfg_dir   = File.dirname(cfg_dir) until File.basename(cfg_dir).start_with?("config_")
+  cfg_name  = File.basename(cfg_dir).sub(/^config_/, '')
+  primary_yaml = File.join(cfg_dir, "#{cfg_name}.yaml")
+
   # Build ROOT macro invocation with log path argument
-  macro = %Q{src/modules/baryonContamination.C("#{filtered_tfile}","#{tree_name}","#{log_file}")}
+  macro = %Q{src/modules/baryonContamination.C("#{orig_tfile}","#{tree_name}","#{primary_yaml}","#{log_file}")}
   cmd   = ['root', '-l', '-b', '-q', macro]
 
-  puts "[baryonContamination][#{tag}] #{filtered_tfile} (#{tree_name})"
+  puts "[baryonContamination][#{tag}] #{orig_tfile} (#{tree_name})"
   puts "  -> writing results to #{log_file}"
 
   # Run macro (it writes directly to log_file)
