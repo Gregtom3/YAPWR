@@ -78,6 +78,7 @@ static std::vector<std::string> parseCuts(const std::string& path, const std::st
     };
 
     while (std::getline(in, line)) {
+        cout << line << endl;
         int indent = 0;
         while (indent < (int)line.size() && line[indent] == ' ')
             ++indent;
@@ -184,8 +185,10 @@ void binMigration(const char* filePath, const char* treeName, const char* primar
     out << "\n";
     // 5) PRIMARY cuts & count
     {
+        std::cout << primaryYaml << "......." << pionPair << std::endl;
         auto primCuts = parseCuts(primaryYaml, pionPair.c_str());
         if (!primCuts.empty() && t) {
+            std::cout << "A" << std::endl;
             std::string expr = "MCmatch==1 && ";
             for (size_t i = 0; i < primCuts.size(); ++i) {
                 if (i)

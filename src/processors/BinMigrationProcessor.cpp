@@ -30,14 +30,12 @@ Result BinMigrationProcessor::loadData(const fs::path& dir) const {
     int entries = root["entries"].as<int>();
     r.scalars["entries"] = entries;
     LOG_DEBUG("entries = " + std::to_string(entries));
-
     // 2) primary passing
     std::string primaryCfg = root["primary_config"].as<std::string>();
     int primaryPass = root["primary_passing"].as<int>();
     std::string primaryKey = "primary___" + fs::path(primaryCfg).stem().string();
     r.scalars[primaryKey] = primaryPass;
     LOG_DEBUG(primaryKey + " = " + std::to_string(primaryPass));
-
     // 3) other_configs
     for (const auto& oc : root["other_configs"]) {
         std::string cfgPath = oc["config"].as<std::string>();
