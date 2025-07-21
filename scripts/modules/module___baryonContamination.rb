@@ -36,10 +36,10 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
   log_file = File.join(outdir, "baryonContamination.yaml")
 
   # Build ROOT macro invocation with log path argument
-  macro = %Q{src/modules/baryonContamination.C("#{filtered_tfile}","#{tree_name}","#{primary_yaml}","#{log_file}")}
+  macro = %Q{src/modules/baryonContamination.C("#{orig_tfile}","#{tree_name}","#{primary_yaml}","#{log_file}")}
   cmd   = ['root', '-l', '-b', '-q', macro]
 
-  puts "[baryonContamination][#{tag}] #{filtered_tfile} (#{tree_name})"
+  puts "[baryonContamination][#{tag}] #{orig_tfile} (#{tree_name})"
   puts "  -> writing results to #{log_file}"
 
   # Run macro (it writes directly to log_file)

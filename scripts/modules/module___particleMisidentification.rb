@@ -42,13 +42,13 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
 
   puts "[particleMisidentification][#{tag}] #{filtered_tfile} → #{yaml_path}"
 
- # Ascend from leaf to the config_<NAME> dir
- cfg_dir   = leaf_dir
- cfg_dir   = File.dirname(cfg_dir) until File.basename(cfg_dir).start_with?("config_")
- cfg_name  = File.basename(cfg_dir).sub(/^config_/, '')
- primary_yaml = File.join(cfg_dir, "#{cfg_name}.yaml")
+  # Ascend from leaf to the config_<NAME> dir
+  cfg_dir   = leaf_dir
+  cfg_dir   = File.dirname(cfg_dir) until File.basename(cfg_dir).start_with?("config_")
+  cfg_name  = File.basename(cfg_dir).sub(/^config_/, '')
+  primary_yaml = File.join(cfg_dir, "#{cfg_name}.yaml")
   # --- invoke ROOT macro with (file, tree, yaml_output) ---
-  macro = %Q{src/modules/particleMisidentification.C("#{filtered_tfile}","#{tree_name}","#{primary_yaml}",#{yaml_path}")}
+  macro = %Q{src/modules/particleMisidentification.C("#{orig_tfile}","#{tree_name}","#{primary_yaml}",#{yaml_path}")}
   cmd   = ["root", "-l", "-b", "-q", macro]
 
   puts "  -> #{cmd.map(&:inspect).join(' ')}"
