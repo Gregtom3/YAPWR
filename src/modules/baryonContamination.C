@@ -44,7 +44,7 @@ void baryonContamination(const char* filePath, const char* treeName, const char*
     TFile* f = new TFile(filePath, "READ");
     TTree* t = f->Get<TTree>(treeName);
     util::loadEntryList(t, cutYamlPath);
-
+    TEntryList* elist = t->GetEntryList();
     // Attach MCMatch branch for filtering
     Int_t mcMatchVal = 0;
     bool hasMCMatch = false;
@@ -73,7 +73,8 @@ void baryonContamination(const char* filePath, const char* treeName, const char*
     // Loop entries
     Long64_t nEntries = t->GetEntries("");
     Long64_t nEntries_good = t->GetEntries("MCmatch==1");
-    for (Long64_t entry = 0; entry < nEntries; ++entry) {
+    for (Long64_t i = 0; i < nEntries; ++i) {
+        Long64_t entry = elist ? elist->GetEntry(i) : i;
         t->GetEntry(entry);
         // skip entries failing MCMatch == 1
         if (hasMCMatch && mcMatchVal != 1)

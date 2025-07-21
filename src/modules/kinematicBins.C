@@ -56,26 +56,29 @@ static double P_lm(int l, int m, double ct, double st) {
 }
 
 // ---------- average one region to CSV -----------------------------
-static void writeCsv(TTree* t, const std::vector<TLeaf*>& leaves, const char* cut, const char* outfile) {
+static void writeCsv(TTree* t, const std::vector<TLeaf*>& leaves, const char* cut, const char* outfile, const char* cutYamlPath) {
     std::unique_ptr<TTreeFormula> form; // nullptr if no cut
     if (cut && *cut)
         form.reset(new TTreeFormula("sel", cut, t));
 
-    const Long64_t nTot = t->GetEntries("");
+    util::loadEntryList(t, cutYamlPath);
+    TEntryList* elist = t->GetEntryList();
+    const Long64_t nTot = elist->GetN();
     Long64_t nKept = 0;
 
     std::vector<double> sum(leaves.size(), 0.0);
     double Sp00 = 0, Sp10 = 0, Sp11 = 0, Sp1m1 = 0, Sp20 = 0, Sp21 = 0, Sp2m1 = 0, Sp22 = 0, Sp2m2 = 0;
 
     for (Long64_t i = 0; i < nTot; ++i) {
-        t->GetEntry(i);
+        Long64_t entry = elist ? elist->GetEntry(i) : i;
+        t->GetEntry(entry);
         if (form && form->EvalInstance() == 0)
             continue; // cut failed
         ++nKept;
 
         for (size_t j = 0; j < leaves.size(); ++j)
             sum[j] += leaves[j]->GetValue();
-
+        
         double th = t->GetLeaf("th") ? t->GetLeaf("th")->GetValue() : 0;
         double ct = std::cos(th), st = std::sin(th);
         Sp00 += 1.0;
@@ -124,18 +127,18 @@ void kinematicBins(const char* file, const char* treeName, const char* pair, con
         return;
     }
 
-    util::loadEntryList(t, cutYamlPath);
+
 
     gSystem->mkdir(outDir, true);
     auto leaves = numericLeaves(t);
 
     // full range
-    writeCsv(t, leaves, "", (std::string(outDir) + "/full.csv").c_str());
+    writeCsv(t, leaves, "", (std::string(outDir) + "/full.csv").c_str(), cutYamlPath);
 
     std::string p(pair);
     if (p == "piplus_pi0" || p == "piminus_pi0") {
-        writeCsv(t, leaves, "M2>0.106 && M2<0.166", (std::string(outDir) + "/signal.csv").c_str());
-        writeCsv(t, leaves, "M2>0.2 && M2<0.4", (std::string(outDir) + "/background.csv").c_str());
+        writeCsv(t, leaves, "M2>0.106 && M2<0.166", (std::string(outDir) + "/signal.csv").c_str(), cutYamlPath);
+        writeCsv(t, leaves, "M2>0.2 && M2<0.4", (std::string(outDir) + "/background.csv").c_str(), cutYamlPath);
     }
     f.Close();
 }

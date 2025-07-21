@@ -77,7 +77,8 @@ void particleMisidentification(const char* filePath, const char* treeName, const
     }
 
     // 7) loop over entries
-    for (Long64_t entry = 0; entry < nEntries; ++entry) {
+    for (Long64_t i = 0; i < nEntries; ++i) {
+        Long64_t entry = elist ? elist->GetEntry(i) : i;
         t->GetEntry(entry);
         // skip any entry where MCMatch != 1
         if (hasMCMatch && mcMatchVal != 1)
