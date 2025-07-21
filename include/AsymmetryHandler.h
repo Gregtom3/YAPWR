@@ -8,11 +8,32 @@
 #include "NormalizationError.h"
 #include "ParticleMisidentificationError.h"
 #include "Result.h"
+#include <fstream>
+#include <iostream>
 #include <map>
 #include <string>
 
 /// Handle asymmetryPW results across all configs
 class AsymmetryHandler {
+
+    struct Record {
+        std::string cfgName;    // e.g. “piplus_pi0_rga_fall2018”
+        std::string pionPair;   // Config::getPionPair()
+        std::string runVersion; // Config::getRunVersion()
+        std::string binVar;     // e.g. “x”, “Mh”, …
+        double binVal = NAN;    // numeric value of that variable
+        double A = NAN;         // asymmetry
+        double sStat = NAN;     // statistical error
+        double sSys = NAN;      // total systematic error
+
+        // systematic breakdown (relative ↔ absolute)
+        double rBinMig = 0., aBinMig = 0.;
+        double rBary = 0., aBary = 0.;
+        double rMisID = 0., aMisID = 0.;
+        std::map<std::string, double> rNorm; // polarisation, target‑density, …
+        std::map<std::string, double> aNorm;
+    };
+
 public:
     explicit AsymmetryHandler(const std::map<std::string, std::map<std::string, Result>>& allResults,
                               const std::map<std::string, Config>& configMap);
@@ -20,6 +41,7 @@ public:
     void reportAsymmetry(const std::string& region, int termIndex, const std::string& binPrefix) const;
 
     void collectSystematics(const std::string& region, int termIndex, const std::string& binPrefix) const;
+    void dumpYaml(const std::string& outPath) const;
 
 protected:
     void createSortedConfigNames();
@@ -35,4 +57,5 @@ private:
     mutable std::unordered_map<std::string, double> asymValue_;
     mutable std::unordered_map<std::string, double> asymStatErr_;
     mutable std::unordered_map<std::string, double> asymSysErr_;
+    mutable std::vector<Record> records_;
 };

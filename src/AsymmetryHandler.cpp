@@ -138,5 +138,61 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
             const double absErr = aAbs * rel;
             LOG_INFO("    normalization(" << comp << ") : rel " << rel << ", abs " << absErr);
         }
+
+        // ---------- 5) book‑keeping --------------------------------
+        Record rec;
+        rec.cfgName = cfgName;
+        rec.pionPair = thisConfig.getPionPair();
+        rec.runVersion = thisConfig.getRunVersion();
+        rec.binVar = binField;
+        rec.binVal = binVal;
+        rec.A = A;
+        rec.sStat = sStat;
+        rec.sSys = sSys;
+
+        rec.rBinMig = rBinMig;
+        rec.aBinMig = sBinMig;
+        rec.rBary = rBary;
+        rec.aBary = sBary;
+        rec.rMisID = rMisID;
+        rec.aMisID = sMisID;
+
+        for (const auto& [comp, rel] : rNorm) {
+            rec.rNorm[comp] = rel;
+            rec.aNorm[comp] = aAbs * rel;
+        }
+        records_.emplace_back(std::move(rec));
     }
+}
+
+void AsymmetryHandler::dumpYaml(const std::string& outPath) const {
+    YAML::Emitter out;
+    out << YAML::BeginMap << YAML::Key << "records" << YAML::Value << YAML::BeginSeq;
+
+    for (const auto& r : records_) {
+        out << YAML::BeginMap << YAML::Key << "cfg" << YAML::Value << r.cfgName << YAML::Key << "pionPair" << YAML::Value << r.pionPair
+            << YAML::Key << "runVersion" << YAML::Value << r.runVersion << YAML::Key << r.binVar << YAML::Value << r.binVal
+            << YAML::Key << "A" << YAML::Value << r.A << YAML::Key << "sStat" << YAML::Value << r.sStat << YAML::Key << "sSys"
+            << YAML::Value << r.sSys
+
+            << YAML::Key << "systematics" << YAML::Value << YAML::BeginMap << YAML::Key << "binMigration" << YAML::Value << YAML::Flow
+            << YAML::BeginSeq << r.rBinMig << r.aBinMig << YAML::EndSeq << YAML::Key << "baryonContamination" << YAML::Value
+            << YAML::Flow << YAML::BeginSeq << r.rBary << r.aBary << YAML::EndSeq << YAML::Key << "particleMisID" << YAML::Value
+            << YAML::Flow << YAML::BeginSeq << r.rMisID << r.aMisID << YAML::EndSeq << YAML::Key << "normalization" << YAML::Value
+            << YAML::BeginMap;
+        for (const auto& [comp, rel] : r.rNorm) {
+            out << YAML::Key << comp << YAML::Value << YAML::Flow << YAML::BeginSeq << rel << r.aNorm.at(comp) << YAML::EndSeq;
+        }
+        out << YAML::EndMap  // normalization
+            << YAML::EndMap  // systematics
+            << YAML::EndMap; // record
+    }
+
+    out << YAML::EndSeq << YAML::EndMap;
+
+    std::ofstream fout(outPath);
+    if (!fout)
+        LOG_ERROR("Unable to open " << outPath << " for writing");
+    else
+        fout << out.c_str();
 }

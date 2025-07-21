@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
 
     AsymmetryHandler asym(synth.getResults(), synth.getConfigsMap());
     asym.reportAsymmetry("signal_purity_5_5", 2, "full");
-
+    asym.dumpYaml("out/" + std::string(argv[1]) + "/asymmetry_results.yaml");
     std::cout << "Done!" << std::endl;
     return 0;
 }
