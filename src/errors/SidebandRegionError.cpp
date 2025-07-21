@@ -6,11 +6,13 @@ SidebandRegionError::SidebandRegionError(const Config& cfg)
 {
 }
 
-double SidebandRegionError::getRelativeError(const Result&      /*r*/,
-                                             const std::string& /*region*/,
-                                             int                /*pwTerm*/)
+double SidebandRegionError::getRelativeError(const Result&      r,
+                                             const std::string& region,
+                                             int                pwTerm)
 {
 
+    r.print(Logger::FORCE);
+    std::cout << region << " , " << pwTerm << std::endl;
     // Only process pi0
     if(!cfg_.contains_pi0()){
         LOG_INFO("Skipping SidebandRegionError for non-Pi0 dihadron");

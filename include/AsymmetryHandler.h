@@ -4,6 +4,7 @@
 #include "BaryonContaminationError.h"
 #include "BinMigrationError.h"
 #include "Config.h"
+#include "Constants.h"
 #include "KinematicBinsProcessor.h"
 #include "NormalizationError.h"
 #include "ParticleMisidentificationError.h"
@@ -22,16 +23,21 @@ class AsymmetryHandler {
         std::string pionPair;   // Config::getPionPair()
         std::string runVersion; // Config::getRunVersion()
         std::string binVar;     // e.g. “x”, “Mh”, …
-        double binVal = NAN;    // numeric value of that variable
-        double A = NAN;         // asymmetry
-        double sStat = NAN;     // statistical error
-        double sSys = NAN;      // total systematic error
+        int L;                  // partial wave L
+        int M;                  // partial wave M
+        int TWIST;
+        std::string modulationLatex;
+        std::string region;
+        double binVal = NAN; // numeric value of that variable
+        double A = NAN;      // asymmetry
+        double sStat = NAN;  // statistical error
+        double sSys = NAN;   // total systematic error
 
         // systematic breakdown (relative ↔ absolute)
         double rBinMig = 0., aBinMig = 0.;
         double rBary = 0., aBary = 0.;
         double rMisID = 0., aMisID = 0.;
-        double rSreg  = 0., aSreg  = 0.;
+        double rSreg = 0., aSreg = 0.;
         std::map<std::string, double> rNorm; // polarisation, target‑density, …
         std::map<std::string, double> aNorm;
     };

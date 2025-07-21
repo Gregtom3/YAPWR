@@ -82,4 +82,61 @@ inline const std::unordered_map<int, ParticleInfo>& particlePalette() {
                                                               {130, {130, "K^{0}_{\\,L}", "K^{0}_{L}", "#FF5733"}}};
     return tbl;
 }
+
+struct PWTerm {
+    int n; ///< index 0…11
+    int l;
+    int m;
+    int twist;
+    std::string code;  ///< C++ expression
+    std::string latex; ///< LaTeX expression
+};
+
+/* ---------- partial‑wave modulation lookup ------------------- */
+inline const std::unordered_map<int, PWTerm>& pwTable() {
+    static const std::unordered_map<int, PWTerm> tbl = {
+        /* n l m tw code                              latex ------------------------------------ */
+        {0, {0, 1, 1, 2, "(sin(th))*sin(phi_h - phi_R1)", "\\sin\\theta\\,\\sin(\\phi_h-\\phi_R)"}},
+        {1, {1, 2, 1, 2, "(sin(2*th))*sin(phi_h - phi_R1)", "\\sin2\\theta\\,\\sin(\\phi_h-\\phi_R)"}},
+        {2, {2, 2, 2, 2, "(sin(th)*sin(th))*sin(2*phi_h - 2*phi_R1)", "\\sin^{2}\\theta\\,\\sin(2\\phi_h-2\\phi_R)"}},
+        {3, {3, 0, 0, 3, "1.0*sin(phi_h)", "\\sin(\\phi_h)"}},
+        {4, {4, 1, -1, 3, "(sin(th))*sin(2*phi_h - phi_R1)", "\\sin\\theta\\,\\sin(2\\phi_h-\\phi_R)"}},
+        {5, {5, 1, 0, 3, "(cos(th))*sin(phi_h)", "\\cos\\theta\\,\\sin(\\phi_h)"}},
+        {6, {6, 1, 1, 3, "(sin(th))*sin(phi_R1)", "\\sin\\theta\\,\\sin(\\phi_R)"}},
+        {7, {7, 2, -2, 3, "(sin(th)*sin(th))*sin(3*phi_h - 2*phi_R1)", "\\sin^{2}\\theta\\,\\sin(3\\phi_h-2\\phi_R)"}},
+        {8, {8, 2, -1, 3, "(sin(2*th))*sin(2*phi_h - phi_R1)", "\\sin2\\theta\\,\\sin(2\\phi_h-\\phi_R)"}},
+        {9, {9, 2, 0, 3, "(0.5*(3*cos(th)*cos(th)-1))*sin(phi_h)", "\\frac{1}{2}(3\\cos^{2}\\theta-1)\\,\\sin(\\phi_h)"}},
+        {10, {10, 2, 1, 3, "(sin(2*th))*sin(phi_R1)", "\\sin2\\theta\\,\\sin(\\phi_R)"}},
+        {11, {11, 2, 2, 3, "(sin(th)*sin(th))*sin(-phi_h + 2*phi_R1)", "\\sin^{2}\\theta\\,\\sin(-\\phi_h+2\\phi_R)"}}};
+    return tbl;
+}
+
+/* lookup by index ------------------------------------------------- */
+inline const PWTerm& pwTerm(int n) {
+    return pwTable().at(n);
+}
+inline const std::string& modulationCode(int n) {
+    return pwTable().at(n).code;
+}
+inline const std::string& modulationLatex(int n) {
+    return pwTable().at(n).latex;
+}
+
+/* lookup by (l,m,twist) -------------------------------- */
+inline const PWTerm* pwTerm(int l, int m, int tw) {
+    for (auto& [_, t] : pwTable())
+        if (t.l == l && t.m == m && t.twist == tw)
+            return &t;
+    return nullptr;
+}
+
+inline int pwL(int n) {
+    return pwTable().at(n).l;
+}
+inline int pwM(int n) {
+    return pwTable().at(n).m;
+}
+inline int pwTwist(int n) {
+    return pwTable().at(n).twist;
+}
 } // namespace Constants
