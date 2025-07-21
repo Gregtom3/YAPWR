@@ -32,6 +32,10 @@ public:
         return _cfgFile.binVariable;
     }
 
+    std::string getYamlPath() const {
+        return _yamlPath;
+    }
+
     std::string name;
 
     bool contains_pi0() const {
@@ -74,5 +78,5 @@ private:
         return _cfgFile;
     }
     ConfigFile _cfgFile;
-    std::string _projectDir, _pionPair, _runVersion, _mcVersion;
+    std::string _projectDir, _pionPair, _runVersion, _mcVersion, _yamlPath;
 };

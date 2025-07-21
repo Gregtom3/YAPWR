@@ -73,6 +73,10 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
     // First initialize the Asymmetry map, logging all asymmetry values/statistical errors
     initializeAsymmetryMaps(region, termIndex);
 
+    // Second, initialize the map for the full bin migration
+    std::unordered_map<std::string,const Result*> allBinMig;
+    for (auto& [cfgName, modules] : allResults_)
+        allBinMig[cfgName] = &modules.at("binMigration");
     // Determination of the systematic errors
     // Loop over each kinematic bin
     for (const std::string& cfgName : sortedCfgNames_) {
@@ -91,7 +95,7 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         //------------------------------------------------------------
         double rBinMig = 0.0, rBary = 0.0, rMisID = 0.0;
         BaryonContaminationError bcErr(thisConfig);
-        BinMigrationError bmErr(thisConfig, configMap_, sortedCfgNames_, asymValue_);
+        BinMigrationError bmErr(thisConfig, configMap_, sortedCfgNames_, asymValue_,allBinMig);
         ParticleMisidentificationError pmErr(thisConfig);
         NormalizationError normErr(thisConfig);
 

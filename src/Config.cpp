@@ -10,6 +10,7 @@ Config::Config(const std::string& yamlPath, const std::string& projectDir, const
     _projectDir = projectDir;
     _pionPair = pionPair;
     _runVersion = runVersion;
+    _yamlPath = yamlPath;
     setMCVersion();
     _cfgFile = ConfigFile::loadFromFile(yamlPath);
 }
