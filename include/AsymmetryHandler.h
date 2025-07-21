@@ -31,6 +31,7 @@ class AsymmetryHandler {
         double rBinMig = 0., aBinMig = 0.;
         double rBary = 0., aBary = 0.;
         double rMisID = 0., aMisID = 0.;
+        double rSreg  = 0., aSreg  = 0.;
         std::map<std::string, double> rNorm; // polarisation, target‑density, …
         std::map<std::string, double> aNorm;
     };

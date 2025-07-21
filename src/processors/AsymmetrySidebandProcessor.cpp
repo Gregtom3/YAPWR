@@ -8,7 +8,7 @@ std::unique_ptr<ModuleProcessor> make() {
     return std::make_unique<AsymmetrySidebandProcessor>();
 }
 const bool registered = []() {
-    ModuleProcessorFactory::instance().registerProcessor("asymmetry_sideband", make);
+    ModuleProcessorFactory::instance().registerProcessor("sidebandRegion", make);
     return true;
 }();
 } // namespace

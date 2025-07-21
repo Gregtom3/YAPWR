@@ -130,8 +130,8 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         const double sBary = aAbs * rBary;
         const double sMisID = aAbs * rMisID;
         const double sNormAbs = aAbs * sNormTotal;
-
-        const double sSys = std::sqrt(sBinMig * sBinMig + sBary * sBary + sMisID * sMisID + sNormAbs * sNormAbs);
+        const double sSreg    = aAbs * rSreg;
+        const double sSys = std::sqrt(sBinMig * sBinMig + sBary * sBary + sMisID * sMisID + sNormAbs * sNormAbs + sSreg * sSreg);
 
         // ---------- 4) print summary --------------------------------
         LOG_INFO("[" << cfgName << "] " << region << ".b_" << termIndex << " = " << A << "  +/-stat " << sStat << "  +/-sys  " << sSys
@@ -147,6 +147,11 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
             LOG_INFO("    normalization(" << comp << ") : rel " << rel << ", abs " << absErr);
         }
 
+        // Pi0 only
+        if(thisConfig.contains_pi0()){
+            LOG_INFO("    sidebandRegion       : rel " << rSreg << ", abs " << sSreg);
+        }
+        
         // ---------- 5) book‑keeping --------------------------------
         Record rec;
         rec.cfgName = cfgName;
@@ -164,7 +169,8 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         rec.aBary = sBary;
         rec.rMisID = rMisID;
         rec.aMisID = sMisID;
-
+        rec.rSreg  = rSreg;
+        rec.aSreg  = sSreg;
         for (const auto& [comp, rel] : rNorm) {
             rec.rNorm[comp] = rel;
             rec.aNorm[comp] = aAbs * rel;
@@ -186,7 +192,8 @@ void AsymmetryHandler::dumpYaml(const std::string& outPath) const {
             << YAML::Key << "systematics" << YAML::Value << YAML::BeginMap << YAML::Key << "binMigration" << YAML::Value << YAML::Flow
             << YAML::BeginSeq << r.rBinMig << r.aBinMig << YAML::EndSeq << YAML::Key << "baryonContamination" << YAML::Value
             << YAML::Flow << YAML::BeginSeq << r.rBary << r.aBary << YAML::EndSeq << YAML::Key << "particleMisID" << YAML::Value
-            << YAML::Flow << YAML::BeginSeq << r.rMisID << r.aMisID << YAML::EndSeq << YAML::Key << "normalization" << YAML::Value
+            << YAML::Flow << YAML::BeginSeq << r.rMisID << r.aMisID << YAML::EndSeq << YAML::Key << "sidebandRegion" << YAML::Value
+            << YAML::Flow << YAML::BeginSeq << r.rSreg << r.aSreg << YAML::EndSeq << YAML::Key << "normalization" << YAML::Value
             << YAML::BeginMap;
         for (const auto& [comp, rel] : r.rNorm) {
             out << YAML::Key << comp << YAML::Value << YAML::Flow << YAML::BeginSeq << rel << r.aNorm.at(comp) << YAML::EndSeq;

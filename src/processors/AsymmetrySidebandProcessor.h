@@ -8,7 +8,7 @@ class AsymmetrySidebandProcessor : public AsymmetryProcessor {
 public:
     // Factory key
     std::string name() const override {
-        return "asymmetry_sideband";
+        return "sidebandRegion";
     }
 
     // Override to scan wildcard subdirs instead of a single dir
