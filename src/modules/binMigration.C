@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+#include "TreeManager.C"
+
 // ------------------------------------------------------------------
 // Dump a YAML section for `key`, preserving indentation.
 // Writes each trimmed line prefixed by `indent` to `out`.
@@ -148,6 +150,7 @@ static std::vector<std::string> findAllConfigYamls(const std::string& projectDir
 //                                      "out/project/report.yaml")'
 // ------------------------------------------------------------------
 void binMigration(const char* filePath, const char* treeName, const char* primaryYaml, const char* projectDir, const char* yamlPath) {
+    
     // Ensure output directory exists
     TString outDir = gSystem->DirName(yamlPath);
     gSystem->mkdir(outDir, true);
@@ -159,30 +162,29 @@ void binMigration(const char* filePath, const char* treeName, const char* primar
     }
 
     // 1) Open ROOT file & TTree
-    TFile* f = TFile::Open(filePath, "READ");
-    TTree* t = (f && !f->IsZombie()) ? dynamic_cast<TTree*>(f->Get(treeName)) : nullptr;
-    Long64_t totalEntries = t ? t->GetEntries() : 0;
-
+    TFile*  f = new TFile(filePath,"READ");
+    TTree*  t = f->Get<TTree>(treeName);
+    util::loadEntryList(t, primaryYaml, true);
+    Long64_t totalEntries = t ? t->GetEntries("") : 0;
+    
     // 2) Top‐level metadata
     out << "file:    \"" << filePath << "\"\n";
     out << "tree:    \"" << treeName << "\"\n";
     out << "entries: " << totalEntries << "\n\n";
 
     // 3) Derive pionPair
-    const char* leafDir = gSystem->DirName(filePath);
-    const char* parentDir = gSystem->DirName(leafDir);
-    std::string pionPair = gSystem->BaseName(parentDir);
-    out << "pion_pair: \"" << pionPair << "\"\n\n";
-
+    std::string leafDir   = gSystem->DirName(filePath); 
+    std::string parentDir = gSystem->DirName(leafDir.c_str());
+    std::string pionPair  = gSystem->BaseName(leafDir.c_str());
+    
     // 4) PRIMARY YAML section
     out << "primary_config: \"" << primaryYaml << "\"\n";
     out << "primary_section:\n";
-    dumpYamlSection(primaryYaml, pionPair, out, "  ");
+    dumpYamlSection(primaryYaml, pionPair.c_str(), out, "  ");
     out << "\n";
-
     // 5) PRIMARY cuts & count
     {
-        auto primCuts = parseCuts(primaryYaml, pionPair);
+        auto primCuts = parseCuts(primaryYaml, pionPair.c_str());
         if (!primCuts.empty() && t) {
             std::string expr = "MCmatch==1 && ";
             for (size_t i = 0; i < primCuts.size(); ++i) {
@@ -195,7 +197,6 @@ void binMigration(const char* filePath, const char* treeName, const char* primar
             out << "primary_passing:   " << nPrim << "\n\n";
         }
     }
-
     // 6) OTHER configs
     auto yamls = findAllConfigYamls(projectDir);
     out << "other_configs:\n";
@@ -205,15 +206,15 @@ void binMigration(const char* filePath, const char* treeName, const char* primar
 
         out << "- config: \"" << y << "\"\n";
         out << "  section:\n";
-        dumpYamlSection(y, pionPair, out, "    ");
+        dumpYamlSection(y, pionPair.c_str(), out, "    ");
 
-        auto cuts = parseCuts(y, pionPair);
+        auto cuts = parseCuts(y, pionPair.c_str());
         if (cuts.empty() || !t) {
             out << "  note: \"no cuts found or tree missing\"\n\n";
             continue;
         }
 
-        std::string expr;
+        std::string expr = "MCmatch==1 && ";
         for (size_t i = 0; i < cuts.size(); ++i) {
             if (i)
                 expr += " && ";
@@ -228,3 +229,11 @@ void binMigration(const char* filePath, const char* treeName, const char* primar
         f->Close();
     out.close();
 }
+
+
+
+
+
+
+
+

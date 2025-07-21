@@ -6,40 +6,60 @@
 
 #include <iostream>
 #include <memory>
+#include <regex>
 #include <sstream>
 
-namespace util {
+namespace util
+{
+// ------------------------------------------------------------------
+//  Regex: standalone identifiers      Mh ,  x1 ,  var_42
+//         but not                     trueMh ,  and ,  or ,  not
+// ------------------------------------------------------------------
+static const std::regex var_re(R"(\b(?!true|and|or|not)([A-Za-z_][A-Za-z0-9_]*)\b)");
 
-// join ["a>1","b<2"] → "a>1&&b<2"
-inline std::string joinCuts(const YAML::Node& seq)
+// ------------------------------------------------------------------
+//  Transform a single cut if flag set
+// ------------------------------------------------------------------
+inline std::string transformCut(const std::string& in, bool useTrue)
+{
+    return useTrue ? std::regex_replace(in, var_re, "true$1") : in;
+}
+
+// ------------------------------------------------------------------
+//  Join YAML sequence ["a>1","b<2"] -> "a>1&&b<2" (with optional transform)
+// ------------------------------------------------------------------
+inline std::string joinCuts(const YAML::Node& seq, bool useTrue)
 {
     std::ostringstream oss;
     for (std::size_t i = 0; i < seq.size(); ++i) {
         if (i) oss << "&&";
-        oss << seq[i].as<std::string>();
+        oss << transformCut(seq[i].as<std::string>(), useTrue);
     }
     return oss.str();
 }
 
-void loadEntryList(TTree* tree, const char* yamlPath)
+// ------------------------------------------------------------------
+//  loadEntryList : attach filtered TEntryList to <tree>
+// ------------------------------------------------------------------
+void loadEntryList(TTree*       tree,
+                   const char*  yamlPath,
+                   bool         useTrueVariable = false)  
 {
     if (!tree) { std::cerr << "[loadEntryList] null TTree pointer\n"; return; }
 
-    // --- 1) parse YAML -------------------------------------------------------
+    // 1) parse YAML
     YAML::Node cfg = YAML::LoadFile(yamlPath);
 
-    // --- 2) decide which pair key matches the file or tree name -------------
-    std::string searchStr = tree->GetCurrentFile() ?
-                            tree->GetCurrentFile()->GetName() : tree->GetName();
+    // 2) infer pair key
+    std::string searchStr = tree->GetCurrentFile()
+                          ? tree->GetCurrentFile()->GetName()
+                          : tree->GetName();
 
     std::string pairKey;
     for (const auto& kv : cfg) {
         std::string key = kv.first.as<std::string>();
         if (key == "bin_variable") continue;
-        if (searchStr.find("/" + key + "/") != std::string::npos) {
-            pairKey = key;
-            break;
-        }
+        if (searchStr.find("/" + key + "/") != std::string::npos) { pairKey = key; break; }
     }
     if (pairKey.empty()) {
         std::cerr << "[loadEntryList] could not infer pair name from "
@@ -47,17 +67,19 @@ void loadEntryList(TTree* tree, const char* yamlPath)
         return;
     }
 
-    // --- 3) build logical cut expression ------------------------------------
+    // 3) build logical cut
     const YAML::Node& cutsNode = cfg[pairKey]["cuts"];
     if (!cutsNode || !cutsNode.IsSequence()) {
         std::cerr << "[loadEntryList] no cuts for " << pairKey << '\n';
         return;
     }
-    std::string cutExpr = joinCuts(cutsNode);
+    std::string cutExpr = joinCuts(cutsNode, useTrueVariable);
 
-    // --- 4) create entry list (Draw → tmp → clone) --------------------------
+    // 4) create entry list
     TString tmpName = Form("elist_tmp_%s", pairKey.c_str());
-    tree->Draw(Form(">>%s", tmpName.Data()), cutExpr.c_str(), "entrylist");
+    tree->Draw(Form(">>%s", tmpName.Data()),
+               cutExpr.c_str(),
+               "entrylist");
 
     auto* tmp = static_cast<TEntryList*>(gDirectory->Get(tmpName));
     if (!tmp) {
@@ -68,8 +90,10 @@ void loadEntryList(TTree* tree, const char* yamlPath)
     auto* elist = static_cast<TEntryList*>(tmp->Clone(Form("elist_%s", pairKey.c_str())));
     tree->SetEntryList(elist);
 
-    std::cout << "[loadEntryList] " << pairKey << " → \"" << cutExpr
-              << "\"  (" << elist->GetN() << " / " << tree->GetEntries()
+    std::cout << "[loadEntryList] " << pairKey
+              << (useTrueVariable ? " (true vars)" : "")
+              << " → \"" << cutExpr << "\"  ("
+              << elist->GetN() << " / " << tree->GetEntries()
               << " entries kept)\n";
 }
-};
+} // namespace util
