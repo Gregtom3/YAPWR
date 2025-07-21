@@ -44,7 +44,6 @@ void baryonContamination(const char* filePath, const char* treeName, const char*
     TFile*  f = new TFile(filePath,"READ");
     TTree*  t = f->Get<TTree>(treeName);
     util::loadEntryList(t, cutYamlPath);
-    std::cout << t->GetEntries("") << std::endl;
 
     // Attach MCMatch branch for filtering
     Int_t mcMatchVal = 0;

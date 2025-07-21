@@ -8,8 +8,10 @@
 #include <string>
 #include <vector>
 
+#include "TreeManager.C"
+
 // Macro entry:
-void particleMisidentification(const char* filePath, const char* treeName, const char* yamlPath) {
+void particleMisidentification(const char* filePath, const char* treeName, const char* cutYamlPath, const char* yamlPath) {
     // 1) ensure output directory exists
     {
         std::string dir = std::string(yamlPath);
@@ -39,6 +41,8 @@ void particleMisidentification(const char* filePath, const char* treeName, const
         return;
     }
 
+    util::loadEntryList(t, cutYamlPath);
+    
     // 3.5) Attach MCMatch branch for filtering
     Int_t mcMatchVal = 0;
     bool hasMCMatch = false;
@@ -51,7 +55,7 @@ void particleMisidentification(const char* filePath, const char* treeName, const
     }
 
     // 4) total entries
-    Long64_t nEntries = t->GetEntries();
+    Long64_t nEntries = t->GetEntries("");
     Long64_t nEntries_good = t->GetEntries("MCmatch==1");
     out << "total_entries: " << nEntries_good << "\n";
 

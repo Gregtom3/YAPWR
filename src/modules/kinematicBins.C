@@ -61,7 +61,7 @@ static void writeCsv(TTree* t, const std::vector<TLeaf*>& leaves, const char* cu
     if (cut && *cut)
         form.reset(new TTreeFormula("sel", cut, t));
 
-    const Long64_t nTot = t->GetEntries();
+    const Long64_t nTot = t->GetEntries("");
     Long64_t nKept = 0;
 
     std::vector<double> sum(leaves.size(), 0.0);
