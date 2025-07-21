@@ -93,13 +93,14 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         //------------------------------------------------------------
         // 2)  Grab each systematic contribution (relative errors)
         //------------------------------------------------------------
-        double rBinMig = 0.0, rBary = 0.0, rMisID = 0.0, rSreg;
+        double rBinMig = 0.0, rBary = 0.0, rMisID = 0.0, rSreg = 0.0, rPbin = 0.0;
         BaryonContaminationError bcErr(thisConfig);
         BinMigrationError bmErr(thisConfig, configMap_, sortedCfgNames_, asymValue_, allBinMig);
         ParticleMisidentificationError pmErr(thisConfig);
         NormalizationError normErr(thisConfig);
         SidebandRegionError sregErr(thisConfig,A);
-
+        PurityBinningError pbinErr(thisConfig,A);
+        
         if (auto it = modules.find("binMigration"); it != modules.end())
             rBinMig = bmErr.getRelativeError(it->second, region, termIndex);
 
@@ -111,6 +112,9 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
 
         if (auto it = modules.find("sidebandRegion"); it != modules.end())
             rSreg = sregErr.getRelativeError(it->second, region, termIndex);
+        
+        if (auto it = modules.find("sidebandRegion"); it != modules.end()) // use the sidebandRegion Result again for purityBinning
+            rPbin = pbinErr.getRelativeError(it->second, region, termIndex);
 
         // ----- Normalization pieces -----
         std::map<std::string, double> rNorm;
@@ -131,7 +135,8 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         const double sMisID = aAbs * rMisID;
         const double sNormAbs = aAbs * sNormTotal;
         const double sSreg = aAbs * rSreg;
-        const double sSys = std::sqrt(sBinMig * sBinMig + sBary * sBary + sMisID * sMisID + sNormAbs * sNormAbs + sSreg * sSreg);
+        const double sPbin = aAbs * rPbin;
+        const double sSys = std::sqrt(sBinMig * sBinMig + sBary * sBary + sMisID * sMisID + sNormAbs * sNormAbs + sSreg * sSreg + sPbin*sPbin);
 
         // ---------- 4) print summary --------------------------------
         LOG_INFO("[" << cfgName << "] " << region << ".b_" << termIndex << " = " << A << "  +/-stat " << sStat << "  +/-sys  " << sSys
@@ -150,6 +155,7 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         // Pi0 only
         if (thisConfig.contains_pi0()) {
             LOG_INFO("    sidebandRegion       : rel " << rSreg << ", abs " << sSreg);
+            LOG_INFO("    purityBinning        : rel " << rPbin << ", abs " << sPbin);
         }
 
         // ---------- 5) book‑keeping --------------------------------
@@ -177,6 +183,8 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         rec.aMisID = sMisID;
         rec.rSreg = rSreg;
         rec.aSreg = sSreg;
+        rec.rPbin = rPbin;
+        rec.aPbin = sPbin;
         for (const auto& [comp, rel] : rNorm) {
             rec.rNorm[comp] = rel;
             rec.aNorm[comp] = aAbs * rel;
@@ -200,6 +208,7 @@ void AsymmetryHandler::dumpYaml(const std::string& outPath) const {
             << "baryonContamination" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rBary << r.aBary << YAML::EndSeq << YAML::Key
             << "particleMisID" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rMisID << r.aMisID << YAML::EndSeq << YAML::Key
             << "sidebandRegion" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rSreg << r.aSreg << YAML::EndSeq << YAML::Key
+            << "purityBinning" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rPbin << r.aPbin << YAML::EndSeq << YAML::Key
             << "normalization" << YAML::Value << YAML::BeginMap;
         for (const auto& [comp, rel] : r.rNorm) {
             out << YAML::Key << comp << YAML::Value << YAML::Flow << YAML::BeginSeq << rel << r.aNorm.at(comp) << YAML::EndSeq;

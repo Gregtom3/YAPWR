@@ -10,6 +10,7 @@
 #include "ParticleMisidentificationError.h"
 #include "Result.h"
 #include "SidebandRegionError.h"
+#include "PurityBinningError.h"
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -38,6 +39,7 @@ class AsymmetryHandler {
         double rBary = 0., aBary = 0.;
         double rMisID = 0., aMisID = 0.;
         double rSreg = 0., aSreg = 0.;
+        double rPbin = 0., aPbin = 0.;
         std::map<std::string, double> rNorm; // polarisation, target‑density, …
         std::map<std::string, double> aNorm;
     };
