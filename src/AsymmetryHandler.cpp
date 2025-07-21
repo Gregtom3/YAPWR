@@ -36,52 +36,51 @@ void AsymmetryHandler::createSortedConfigNames() {
         sortedCfgNames_.push_back(name);
 }
 
-void AsymmetryHandler::initializeAsymmetryMaps(const std::string& region,
-                                               int termIndex) const
-{
+void AsymmetryHandler::initializeAsymmetryMaps(const std::string& region, int termIndex) const {
     for (const std::string& cfgName : sortedCfgNames_) {
         const auto& modules = allResults_.at(cfgName);
         // --- asymmetry value & stat ---------------------------------
         auto aIt = modules.find(asymProc_.name());
-        if (aIt == modules.end()) continue;
+        if (aIt == modules.end())
+            continue;
         const Result& aRes = aIt->second;
 
-        double A     = asymProc_.getParameterValue (aRes, region, termIndex);
+        double A = asymProc_.getParameterValue(aRes, region, termIndex);
         double sStat = asymProc_.getParameterError(aRes, region, termIndex);
-        double sSys  = 0.0;
-        asymValue_  [cfgName] = A;
+        double sSys = 0.0;
+        asymValue_[cfgName] = A;
         asymStatErr_[cfgName] = sStat;
-        asymSysErr_ [cfgName] = sSys;
+        asymSysErr_[cfgName] = sSys;
     }
 }
 
 std::pair<std::string, double> AsymmetryHandler::getBinInfo(const std::string& cfgName, const std::string& binPrefix) const {
     const auto& modules = allResults_.at(cfgName);
     Config thisConfig = configMap_.at(cfgName);
-        const std::string binField = thisConfig.getBinVariable();
+    const std::string binField = thisConfig.getBinVariable();
 
-        double binVal = std::numeric_limits<double>::quiet_NaN();
-        if (auto kIt = modules.find("kinematicBins"); kIt != modules.end()) {
-            binVal = KinematicBinsProcessor::getBinScalar(kIt->second, binPrefix, binField);
-        } else {
-            LOG_WARN("No kinematicBins result for config " << cfgName);
-        }
-    return std::make_pair(binField,binVal);
+    double binVal = std::numeric_limits<double>::quiet_NaN();
+    if (auto kIt = modules.find("kinematicBins"); kIt != modules.end()) {
+        binVal = KinematicBinsProcessor::getBinScalar(kIt->second, binPrefix, binField);
+    } else {
+        LOG_WARN("No kinematicBins result for config " << cfgName);
+    }
+    return std::make_pair(binField, binVal);
 }
 
 void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex, const std::string& binPrefix) const {
 
     // First initialize the Asymmetry map, logging all asymmetry values/statistical errors
-    initializeAsymmetryMaps(region,termIndex);
+    initializeAsymmetryMaps(region, termIndex);
 
     // Determination of the systematic errors
     // Loop over each kinematic bin
     for (const std::string& cfgName : sortedCfgNames_) {
         Config thisConfig = configMap_.at(cfgName);
         const auto& modules = allResults_.at(cfgName);
-        const auto& binInfo = getBinInfo(cfgName,binPrefix);
+        const auto& binInfo = getBinInfo(cfgName, binPrefix);
         const std::string binField = binInfo.first;
-        const double binVal        = binInfo.second;
+        const double binVal = binInfo.second;
         //------------------------------------------------------------
         // 1)  Fetch the asymmetry value and its statistical error
         //------------------------------------------------------------
@@ -92,10 +91,7 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         //------------------------------------------------------------
         double rBinMig = 0.0, rBary = 0.0, rMisID = 0.0;
         BaryonContaminationError bcErr(thisConfig);
-        BinMigrationError bmErr(thisConfig,
-                                configMap_,
-                                sortedCfgNames_,
-                                asymValue_);
+        BinMigrationError bmErr(thisConfig, configMap_, sortedCfgNames_, asymValue_);
         ParticleMisidentificationError pmErr(thisConfig);
         NormalizationError normErr(thisConfig);
 

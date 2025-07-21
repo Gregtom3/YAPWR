@@ -40,9 +40,9 @@ static void writeYaml(const std::string& path, Long64_t total, const std::vector
     out.close();
 }
 
-void baryonContamination(const char* filePath, const char* treeName, const char* cutYamlPath, const char* outYamlPath){
-    TFile*  f = new TFile(filePath,"READ");
-    TTree*  t = f->Get<TTree>(treeName);
+void baryonContamination(const char* filePath, const char* treeName, const char* cutYamlPath, const char* outYamlPath) {
+    TFile* f = new TFile(filePath, "READ");
+    TTree* t = f->Get<TTree>(treeName);
     util::loadEntryList(t, cutYamlPath);
 
     // Attach MCMatch branch for filtering

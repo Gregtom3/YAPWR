@@ -42,7 +42,7 @@ void particleMisidentification(const char* filePath, const char* treeName, const
     }
 
     util::loadEntryList(t, cutYamlPath);
-    
+
     // 3.5) Attach MCMatch branch for filtering
     Int_t mcMatchVal = 0;
     bool hasMCMatch = false;

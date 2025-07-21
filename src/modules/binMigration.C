@@ -114,7 +114,7 @@ static std::vector<std::string> parseCuts(const std::string& path, const std::st
 static const std::regex var_re(R"(\b(?!true|and|or|not)([A-Za-z_][A-Za-z0-9_]*)\b)");
 
 static std::string transformCut(const std::string& in) {
-    //return std::regex_replace(in, var_re, "true$1");
+    // return std::regex_replace(in, var_re, "true$1");
     return in; // 07/18/2025 no changen needed, using split config TTrees based on generated kinematics
 }
 
@@ -150,7 +150,7 @@ static std::vector<std::string> findAllConfigYamls(const std::string& projectDir
 //                                      "out/project/report.yaml")'
 // ------------------------------------------------------------------
 void binMigration(const char* filePath, const char* treeName, const char* primaryYaml, const char* projectDir, const char* yamlPath) {
-    
+
     // Ensure output directory exists
     TString outDir = gSystem->DirName(yamlPath);
     gSystem->mkdir(outDir, true);
@@ -162,21 +162,21 @@ void binMigration(const char* filePath, const char* treeName, const char* primar
     }
 
     // 1) Open ROOT file & TTree
-    TFile*  f = new TFile(filePath,"READ");
-    TTree*  t = f->Get<TTree>(treeName);
+    TFile* f = new TFile(filePath, "READ");
+    TTree* t = f->Get<TTree>(treeName);
     util::loadEntryList(t, primaryYaml, true);
     Long64_t totalEntries = t ? t->GetEntries("") : 0;
-    
+
     // 2) Top‐level metadata
     out << "file:    \"" << filePath << "\"\n";
     out << "tree:    \"" << treeName << "\"\n";
     out << "entries: " << totalEntries << "\n\n";
 
     // 3) Derive pionPair
-    std::string leafDir   = gSystem->DirName(filePath); 
+    std::string leafDir = gSystem->DirName(filePath);
     std::string parentDir = gSystem->DirName(leafDir.c_str());
-    std::string pionPair  = gSystem->BaseName(leafDir.c_str());
-    
+    std::string pionPair = gSystem->BaseName(leafDir.c_str());
+
     // 4) PRIMARY YAML section
     out << "primary_config: \"" << primaryYaml << "\"\n";
     out << "primary_section:\n";
@@ -229,11 +229,3 @@ void binMigration(const char* filePath, const char* treeName, const char* primar
         f->Close();
     out.close();
 }
-
-
-
-
-
-
-
-

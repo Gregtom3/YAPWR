@@ -23,14 +23,14 @@ void filterTree(const char* inputPath, const char* treeName, const char* configP
     // 2a) Open input
     TFile* inF = TFile::Open(inputPath, "READ");
     TTree* inT = (TTree*)inF->Get(treeName);
-    
+
     // 2b) Keep only desired branches  ---------------------------------------
-    inT->SetBranchStatus("*", 0);             // disable all
+    inT->SetBranchStatus("*", 0); // disable all
     if (keepBranches.empty()) {
         std::cerr << "WARNING: keepBranches is empty; output tree will be empty\n";
     }
     for (const auto& br : keepBranches)
-        inT->SetBranchStatus(br.c_str(), 1);  // enable requested ones
+        inT->SetBranchStatus(br.c_str(), 1); // enable requested ones
 
     // 3) Prepare output file *first* and cd into it
     std::string fname = gSystem->BaseName(inputPath);
