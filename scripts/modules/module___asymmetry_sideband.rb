@@ -15,7 +15,7 @@ out_root     = File.join("out", project_name)
 abort "ERROR: out dir not found: #{out_root}" unless Dir.exist?(out_root)
 
 # Default signal region:
-signal_region = "M2>0.106 && M2<0.166"
+signal_region = "M2>0.106&&M2<0.166"
 
 # Background‐region variants to loop over:
 background_regions = [
