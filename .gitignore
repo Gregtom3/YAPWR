@@ -1,3 +1,4 @@
 *checkpoint*
 build/
 run-clang.sh
+test.yaml
