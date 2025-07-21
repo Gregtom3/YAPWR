@@ -47,12 +47,12 @@ void loadEntryList(TTree* tree, const char* yamlPath, bool useTrueVariable = fal
 
     // 1) parse YAML
     YAML::Node cfg = YAML::LoadFile(yamlPath);
-    
+
     // 1a) optional limit -----------------------------------------------------
-    Long64_t maxEntries = -1;                    // default = no limit
+    Long64_t maxEntries = -1; // default = no limit
     if (cfg["num_entries"] && cfg["num_entries"].IsScalar())
         maxEntries = cfg["num_entries"].as<Long64_t>();
-    
+
     // 2) infer pair key
     std::string searchStr = tree->GetCurrentFile() ? tree->GetCurrentFile()->GetName() : tree->GetName();
 
@@ -81,7 +81,7 @@ void loadEntryList(TTree* tree, const char* yamlPath, bool useTrueVariable = fal
 
     // 4) create entry list
     TString tmpName = Form("elist_tmp_%s", pairKey.c_str());
-    Long64_t nToScan = maxEntries > 0 ? maxEntries : 0;   // 0 = all
+    Long64_t nToScan = maxEntries > 0 ? maxEntries : 0; // 0 = all
     tree->Draw(Form(">>%s", tmpName.Data()), cutExpr.c_str(), "entrylist", nToScan, 0);
 
     auto* tmp = static_cast<TEntryList*>(gDirectory->Get(tmpName));
