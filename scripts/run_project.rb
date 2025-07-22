@@ -16,7 +16,7 @@ VOLATILE_TREE_NAME = 'dihadron_cuts_noPmin'
 # ------------------------------------------------------------------
 #  CLI parsing
 # ------------------------------------------------------------------
-options = { append: false, maxEntries: nil, maxFiles: nil, slurm: false, is_running_on_slurm: false }
+options = { append: false, maxEntries: nil, maxFiles: nil, slurm: false, is_running_on_slurm: false,   doAll: false }
 optlist  = []                                     # remember original flags
 
 parser = OptionParser.new do |opts|
@@ -33,10 +33,23 @@ parser = OptionParser.new do |opts|
   opts.on('--maxFiles M',  Integer){ |m| options[:maxFiles]   = m ; optlist += ['--maxFiles',   m.to_s] }
   opts.on('--slurm')                { options[:slurm]  = true }
   opts.on('--is_running_on_slurm')                { options[:is_running_on_slurm]  = true }
+  opts.on('--doAll', 'Ignore the tag‐filters and use every merged file') do
+    options[:doAll] = true
+    optlist << '--doAll'
+  end
   opts.on('-h','--help'){ puts opts ; exit }
 end
 
 parser.parse!
+
+FILTER_TAGS = {
+  'piminus_pi0'     => %w[Fall2018_RGA_outbending MC_RGA_outbending],
+  'piminus_piminus' => %w[Fall2018_RGA_outbending MC_RGA_outbending],
+  'piplus_pi0'      => %w[Fall2018Spring2019_RGA_inbending MC_RGA_inbending],
+  'piplus_piplus'   => %w[Fall2018Spring2019_RGA_inbending MC_RGA_inbending],
+  'piplus_piminus'  => %w[Fall2018Spring2019_RGA_inbending MC_RGA_inbending],
+  'pi0_pi0'         => %w[Fall2018Spring2019_RGA_inbending MC_RGA_inbending]
+}.freeze
 
 # ------------------------------------------------------------------
 #  Positional arguments
@@ -151,7 +164,16 @@ config_files.each do |cfg|
   unless options[:append]
     File.write(File.join(cfg_dir, 'volatile_project.txt'), VOLATILE_PROJECT)
 
-    usable = merged_files.reject { |f| File.basename(File.dirname(f)) == 'pi0_pi0' }
+    usable = if options[:doAll]
+               merged_files
+             else
+               merged_files.select do |fp|
+                 pair = File.basename(File.dirname(fp))
+                 tag  = File.basename(fp).split('_merged_cuts_noPmin').first
+                 FILTER_TAGS.fetch(pair, []).include?(tag)
+               end
+             end
+    usable = usable.reject { |f| File.basename(File.dirname(f)) == 'pi0_pi0' }
     usable = usable.first(options[:maxFiles]) if options[:maxFiles]&.positive?
 
       

@@ -73,7 +73,7 @@ Dir.glob(File.join(out_root, 'config_*')).sort.each do |cfg|
         #SBATCH --output=#{outdir}/kinematicBins_#{pair}.out
         #SBATCH --error=#{outdir}/kinematicBins_#{pair}.err
         #SBATCH --time=24:00:00
-        #SBATCH --mem-per-cpu=4000
+        #SBATCH --mem-per-cpu=1000
         #SBATCH --cpus-per-task=1
       SLURM
       sbatch += "#SBATCH --dependency=#{options[:deps]}\n" if options[:deps]

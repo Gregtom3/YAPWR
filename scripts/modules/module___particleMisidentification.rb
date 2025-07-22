@@ -76,7 +76,7 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
       #SBATCH --output=#{outdir}/pmisid_#{tag}.out
       #SBATCH --error=#{outdir}/pmisid_#{tag}.err
       #SBATCH --time=24:00:00
-      #SBATCH --mem-per-cpu=4000
+      #SBATCH --mem-per-cpu=1000
       #SBATCH --cpus-per-task=1
     SLURM
     sbatch += "#SBATCH --dependency=#{options[:deps]}\n" if options[:deps]

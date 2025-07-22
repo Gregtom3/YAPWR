@@ -74,8 +74,8 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
         #SBATCH --output=#{output_dir}/purityBinning_#{pair}.out
         #SBATCH --error=#{output_dir}/purityBinning_#{pair}.err
         #SBATCH --time=24:00:00
-        #SBATCH --mem-per-cpu=4000
-        #SBATCH --cpus-per-task=2
+        #SBATCH --mem-per-cpu=2000
+        #SBATCH --cpus-per-task=1
       SBATCH
       sbatch << "#SBATCH --dependency=#{options[:deps]}\n" if options[:deps]
       sbatch << <<~SBATCH

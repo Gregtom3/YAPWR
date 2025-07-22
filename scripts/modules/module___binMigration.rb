@@ -94,7 +94,7 @@ Dir
       #SBATCH --output=#{outdir}/binMigration_#{tag}.out
       #SBATCH --error=#{outdir}/binMigration_#{tag}.err
       #SBATCH --time=24:00:00
-      #SBATCH --mem-per-cpu=4000
+      #SBATCH --mem-per-cpu=1000
       #SBATCH --cpus-per-task=1
       #SBATCH --dependency=#{options[:deps]}
 

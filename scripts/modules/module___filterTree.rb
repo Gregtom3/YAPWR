@@ -57,8 +57,8 @@ Dir.glob(File.join(out_root, 'config_*')).sort.each do |config_dir|
         #SBATCH --output=#{outdir}/filterTree.out
         #SBATCH --error=#{outdir}/filterTree.err
         #SBATCH --time=08:00:00
-        #SBATCH --mem-per-cpu=4000
-        #SBATCH --cpus-per-task=2
+        #SBATCH --mem-per-cpu=2000
+        #SBATCH --cpus-per-task=1
         #{"#SBATCH --dependency=#{opts[:deps]}" if opts[:deps]}
         cd #{Dir.pwd}
         #{root_cmds.join("\n")}

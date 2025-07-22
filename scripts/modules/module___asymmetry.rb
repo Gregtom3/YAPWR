@@ -64,7 +64,7 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
         #SBATCH --error=#{mod_out}/asym_#{pair}.err
         #SBATCH --time=24:00:00
         #SBATCH --mem-per-cpu=4000
-        #SBATCH --cpus-per-task=4
+        #SBATCH --cpus-per-task=2
         # optionally depend on upstream
         #SBATCH --dependency=#{options[:deps]}        
         cd #{Dir.pwd}
