@@ -254,7 +254,7 @@ void purityBinning(const char* inputPath, const char* treeName, const char* pair
             bpe->Fill();
         }
     } // grids loop
-
+    t->SetBranchStatus("*", 1);
     // write tree back
     t->Write("", TObject::kOverwrite);
     f->Close();

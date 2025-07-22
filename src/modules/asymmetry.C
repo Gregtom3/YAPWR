@@ -23,9 +23,9 @@
 
 using namespace RooFit;
 
-static std::string gSignalRegion = "M2>0.106 && M2<0.166";
-static std::string gBackgroundRegion = "M2>0.2   && M2<0.4";
-static std::string gFullRegion = "th > -9999";
+static std::string gSignalRegion = "M2>0.106&&M2<0.166";
+static std::string gBackgroundRegion = "M2>0.2&&M2<0.4";
+static std::string gFullRegion = "th>-9999";
 static std::string gOutputFilename = "asymmetry_results.yaml";
 
 // helper ──────────────────────────────────────────────────────
@@ -265,8 +265,10 @@ void AsymmetryPW::Loop() {
             all.add(pars);
             RooGenericPdf pdf(("pdf_" + puName).c_str(), ("pdf_" + puName).c_str(), expr.c_str(), all);
             std::cout << "Fitting..." << std::endl;
+
             RooFitResult* res =
                 pdf.fitTo(*ds, Save(true), NumCPU(0), PrintLevel(1), Optimize(2), Strategy(0), Minimizer("Minuit2", "migrad"));
+
             if (res && res->status() == 0 && res->covQual() >= 2) {
                 for (size_t i = 0; i < pvec.size(); ++i) {
                     yaml << "    " << tvec.at(i) << ": " << pvec[i]->getVal() << "\n";
