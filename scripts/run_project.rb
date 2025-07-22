@@ -209,7 +209,8 @@ def wait_for_slurm_jobs(ids, poll = 60)
   puts "[run_project] ...all filterTree jobs finished"
 end
 
-asym_ids = []
+purity_ids = []
+
 
 modules.each do |mod|
   case mod
@@ -235,51 +236,62 @@ modules.each do |mod|
   end
 
   when 'purityBinning'
-    invoke('purityBinning',
-           'ruby','./scripts/modules/module___purityBinning.rb', project_name)
+    args = ['ruby', './scripts/modules/module___purityBinning.rb']
+    args << '--slurm' if options[:is_running_on_slurm]
+    args << project_name
+
+    if options[:is_running_on_slurm]
+      out = `#{args.shelljoin}`
+      puts out
+      out.each_line.grep(/\[SLURM_JOBS\]/) do |ln|
+        # collect every ID in the comma‐list
+        purity_ids += ln.split.last.split(',')
+      end
+    else
+      invoke('purityBinning', *args)
+    end
 
   when 'asymmetry'
-    if options[:is_running_on_slurm]
-      # capture the job‐ids that module___asymmetry.rb prints
-      out = `ruby ./scripts/modules/module___asymmetry.rb --slurm #{project_name}`
-      puts out
-      out.each_line.grep(/\[SLURM_JOBS\]/) do |ln|
-        asym_ids += ln.split.last.split(/,/)
-      end
-    else
-      invoke('asymmetry',
-             'ruby','./scripts/modules/module___asymmetry.rb', project_name)
+    args = ['ruby', './scripts/modules/module___asymmetry.rb']
+    args << '--slurm' if options[:is_running_on_slurm]
+    if options[:is_running_on_slurm] && purity_ids.any?
+      args << '--dependency' << "afterok:#{purity_ids.join(',')}"
     end
-  
+    args << project_name
+    invoke('asymmetry', *args)
+
   when 'asymmetry_sideband'
-    if options[:is_running_on_slurm]
-      # capture the job‐ids that module___asymmetry_sideband.rb prints
-      out = `ruby ./scripts/modules/module___asymmetry_sideband.rb --slurm #{project_name}`
-      puts out
-      out.each_line.grep(/\[SLURM_JOBS\]/) do |ln|
-        asym_ids += ln.split.last.split(/,/)
-      end
-    else
-      invoke('asymmetry_sideband',
-             'ruby','./scripts/modules/module___asymmetry_sideband.rb', project_name)
+    args = ['ruby', './scripts/modules/module___asymmetry_sideband.rb']
+    args << '--slurm' if options[:is_running_on_slurm]
+    if options[:is_running_on_slurm] && purity_ids.any?
+      args << '--dependency' << "afterok:#{purity_ids.join(',')}"
     end
-      
+    args << project_name
+    invoke('asymmetry_sideband', *args)
+
   when 'kinematicBins'
-    invoke('kinematicBins',
-           'ruby','./scripts/modules/module___kinematicBins.rb', project_name)
-      
+    args = ['ruby', './scripts/modules/module___kinematicBins.rb']
+    args << '--slurm' if options[:is_running_on_slurm]
+    args << project_name
+    invoke('kinematicBins', *args)
+
   when 'baryonContamination'
-    invoke('baryonContamination',
-           'ruby','./scripts/modules/module___baryonContamination.rb', project_name)
+    args = ['ruby', './scripts/modules/module___baryonContamination.rb']
+    args << '--slurm' if options[:is_running_on_slurm]
+    args << project_name
+    invoke('baryonContamination', *args)
 
   when 'particleMisidentification'
-    invoke('particleMisidentification',
-           'ruby','./scripts/modules/module___particleMisidentification.rb', project_name)
+    args = ['ruby', './scripts/modules/module___particleMisidentification.rb']
+    args << '--slurm' if options[:is_running_on_slurm]
+    args << project_name
+    invoke('particleMisidentification', *args)
 
   when 'binMigration'
-    invoke('binMigration',
-           'ruby','./scripts/modules/module___binMigration.rb', project_name)
-      
+    args = ['ruby', './scripts/modules/module___binMigration.rb']
+    args << '--slurm' if options[:is_running_on_slurm]
+    args << project_name
+    invoke('binMigration', *args)
   else
     warn "WARNING: unknown module '#{mod}' – skipped"
   end

@@ -3,11 +3,24 @@ require 'yaml'
 require 'fileutils'
 require 'optparse'
 
-options = { slurm: false }
+options = { slurm: false, deps: nil }
+
 OptionParser.new do |opts|
-  opts.banner = "Usage: #{File.basename($0)} [--slurm] [--dependency afterok:IDs] PROJECT_NAME"
-  opts.on('--slurm')                 { options[:slurm] = true }
-  opts.on('--dependency DEPSTRING')  { options[:deps]  = DEPSTRING }
+  opts.banner = "Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME"
+
+  opts.on('--slurm', 'Submit via sbatch') do
+    options[:slurm] = true
+  end
+
+  # Fix: accept the dependency string into a block variable `d`
+  opts.on('--dependency D', 'SBATCH --dependency string (e.g. afterok:1234)') do |d|
+    options[:deps] = d
+  end
+
+  opts.on('-h', '--help', 'Show this help') do
+    puts opts
+    exit
+  end
 end.order!
 
 project_name = ARGV.shift or abort "ERROR: PROJECT_NAME missing\n#{opts}"
