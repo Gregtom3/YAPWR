@@ -36,12 +36,14 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
 
     leaf = File.dirname(info_path)
     pair = File.basename(File.dirname(leaf))
-    filtered = File.join(leaf, File.basename(orig_tfile))
-    next unless File.exist?(filtered)
+
+    # only run on real-data π⁰ combinations
+    next unless File.exist?( File.join(leaf, File.basename(orig_tfile)) )
     next unless pair.include?("pi0")
     next if pair.start_with?("MC_")
-    background_regions.each do |bkg|
-      # sanitize region for directory and job-name
+
+    # collect each root invocation
+    cmds = background_regions.map do |bkg|
       sanitized = bkg.
         gsub(/\s+/, '').
         gsub(/[^0-9A-Za-z.]/, '_').
@@ -50,41 +52,45 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
 
       mod_out = File.join(leaf, "module-out___asymmetry_sideband_#{sanitized}")
       FileUtils.mkdir_p(mod_out)
-      root_cmd = [
-          "root", "-l", "-b", "-q",
-          %Q{'src/modules/asymmetry.C("#{filtered}","#{ttree}","#{pair}","#{mod_out}","#{signal_region}","#{bkg}")'}
-      ].join(' ')
 
-      if options[:slurm]
-        # write sbatch script
-        script = <<~SL
-          #!/bin/bash
-          #SBATCH --job-name=asym_sb_#{pair}_#{sanitized}
-          #SBATCH --output=#{mod_out}/asym_#{pair}_#{sanitized}.out
-          #SBATCH --error=#{mod_out}/asym_#{pair}_#{sanitized}.err
-          #SBATCH --time=24:00:00
-          #SBATCH --mem-per-cpu=4000
-          #SBATCH --cpus-per-task=4
-          #SBATCH --dependency=#{options[:deps]}
-          cd #{Dir.pwd}
-          #{root_cmd}
-        SL
+      # build the ROOT command
+      %Q{root -l -b -q 'src/modules/asymmetry.C("#{File.join(leaf, File.basename(orig_tfile))}","#{ttree}","#{pair}","#{mod_out}","#{signal_region}","#{bkg}")'}
+    end
 
-        sbatch_file = File.join(mod_out, "run_asym_#{pair}_#{sanitized}.slurm")
-        File.write(sbatch_file, script)
-        FileUtils.chmod('+x', sbatch_file)
+    if options[:slurm]
+      # one sbatch script per <pair> running all background regions
+      script = <<~SL
+        #!/bin/bash
+        #SBATCH --job-name=asym_sb_#{pair}
+        #SBATCH --output=#{config_dir}/asym_#{pair}.%j.out
+        #SBATCH --error=#{config_dir}/asym_#{pair}.%j.err
+        #SBATCH --time=24:00:00
+        #SBATCH --mem-per-cpu=4000
+        #SBATCH --cpus-per-task=4
+        #{"#SBATCH --dependency=#{options[:deps]}" if options[:deps]}
 
-        out = `sbatch #{sbatch_file}`
-        if out =~ /Submitted batch job (\d+)/
-          job_ids << $1
-          puts "[SLURM_JOBS] #{job_ids.join(',')}"
-        else
-          warn "[module___asymmetry_sideband] sbatch failed: #{out}"
-        end
+        cd #{Dir.pwd}
+
+        #{cmds.join("\n\n        ")}
+      SL
+
+      sbatch_file = File.join(config_dir, "run_asym_#{pair}.slurm")
+      File.write(sbatch_file, script)
+      FileUtils.chmod('+x', sbatch_file)
+
+      out = `sbatch #{sbatch_file}`
+      if out =~ /Submitted batch job (\d+)/
+        job_ids << $1
+        puts "[SLURM_JOBS] #{job_ids.join(',')}"
       else
-        # direct execution
-        puts "[module___asymmetry_sideband] Running: #{root_cmd}"
-        system(root_cmd) or warn "[module___asymmetry_sideband] ERROR for #{info_path}, region #{bkg}"
+        warn "[module___asymmetry_sideband] sbatch failed: #{out}"
+      end
+
+    else
+      # direct, sequential execution if not using SLURM
+      cmds.each do |cmd|
+        puts "[module___asymmetry_sideband] Running: #{cmd}"
+        system(cmd) or warn "[module___asymmetry_sideband] ERROR for #{info_path}"
       end
     end
   end

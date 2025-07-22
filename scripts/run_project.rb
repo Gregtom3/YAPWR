@@ -4,7 +4,8 @@ require 'optparse'
 require 'fileutils'
 require 'yaml'
 require 'shellwords'
-
+require 'open3'
+require 'set'
 # ------------------------------------------------------------------
 #  User-constants
 # ------------------------------------------------------------------
@@ -184,13 +185,28 @@ end
 # ---------- wait until a list of Slurm jobs is done ----------------
 def wait_for_slurm_jobs(ids, poll = 60)
   return if ids.empty?
-  puts "[run_project] Waiting for filterTree jobs #{ids.join(',')} …"
+
+  # normalize to integers and store in a Set for fast lookup
+  target = ids.map(&:to_i).to_set
+  puts "[run_project] Waiting for filterTree jobs #{target.to_a.join(',')} …"
+
   loop do
-    # `squeue -h` prints nothing when all jobs are gone
-    break if `squeue -h -j #{ids.join(',')}`.strip.empty?
+    # ask Slurm for jobs
+    out, status = Open3.capture2("squeue -u #{ENV['USER']} -h -o '%A'")
+    unless status.success?
+      warn "[run_project] warning: squeue failed (exit #{status.exitstatus})"
+      sleep poll
+      next
+    end
+
+    # figure out which of your target IDs are still running
+    running = out.split.map(&:to_i).to_set
+    break if (target & running).empty?
+
     sleep poll
   end
-  puts "[run_project] …all filterTree jobs finished"
+
+  puts "[run_project] ...all filterTree jobs finished"
 end
 
 asym_ids = []
