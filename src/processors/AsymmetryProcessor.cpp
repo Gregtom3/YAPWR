@@ -56,7 +56,6 @@ Result AsymmetryProcessor::loadData(const std::filesystem::path& dir) const {
         return r;
     }
 
-
     return r;
 }
 
