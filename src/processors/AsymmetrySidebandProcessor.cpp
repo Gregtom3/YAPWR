@@ -33,9 +33,12 @@ Result AsymmetrySidebandProcessor::process(const std::string& outDir, const Conf
         std::string fn = entry.path().filename().string();
         if (fn.rfind(prefix, 0) != 0)
             continue;
-
+        
+        LOG_INFO(" --> Found Sideband At " + entry.path().string());
+        
         // sideband name is the part after "module-out___"
         std::string sbName = fn.substr(std::string("module-out___").size());
+        
         // 3) reuse base class’s loadData() on that subdir
         Result r = loadData(entry.path());
 

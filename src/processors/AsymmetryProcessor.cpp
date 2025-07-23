@@ -24,34 +24,40 @@ Result AsymmetryProcessor::loadData(const std::filesystem::path& dir) const {
         return r;
     }
 
-    YAML::Node doc = YAML::LoadFile(yamlPath.string());
-
-    // Loop over each region block
-    for (const auto& node : doc["results"]) {
-        std::string region = node["region"].as<std::string>();
-        int entries = node["entries"].as<int>();
-
-        // 1) record entries
-        r.scalars[region + ".entries"] = entries;
-
-        // 2) detect fit_failed and skip parameters if true
-        if (auto ff = node["fit_failed"]; ff && ff.as<bool>()) {
-            LOG_WARN("Fit failed for region: " + region);
-            continue;
-        }
-
-        // 3) record all other keys
-        for (const auto& kv : node) {
-            const std::string key = kv.first.as<std::string>();
-            if (key == "region" || key == "entries" || key == "fit_failed")
+    // 2) attempt to load the YAML, return empty on failure
+    YAML::Node doc;
+    try {
+        // Loop over each region block
+        for (const auto& node : doc["results"]) {
+            std::string region = node["region"].as<std::string>();
+            int entries = node["entries"].as<int>();
+    
+            // 1) record entries
+            r.scalars[region + ".entries"] = entries;
+    
+            // 2) detect fit_failed and skip parameters if true
+            if (auto ff = node["fit_failed"]; ff && ff.as<bool>()) {
+                LOG_WARN("Fit failed for region: " + region);
                 continue;
-
-            double value = kv.second.as<double>();
-            std::string scalarName = region + "." + key;
-            r.scalars[scalarName] = value;
+            }
+    
+            // 3) record all other keys
+            for (const auto& kv : node) {
+                const std::string key = kv.first.as<std::string>();
+                if (key == "region" || key == "entries" || key == "fit_failed")
+                    continue;
+    
+                double value = kv.second.as<double>();
+                std::string scalarName = region + "." + key;
+                r.scalars[scalarName] = value;
+            }
         }
     }
-
+    catch (const YAML::Exception& e) {
+        LOG_ERROR("Failed to load YAML '" + yamlPath.string() + "': " + e.what());
+        return r;
+    }
+    
     return r;
 }
 
