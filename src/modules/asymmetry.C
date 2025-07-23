@@ -19,8 +19,8 @@
 #include <sstream>
 #include <string>
 #include <tuple>
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 using namespace RooFit;
 
@@ -77,13 +77,11 @@ private:
 };
 
 // ─── constructor ────────────────────────────────────────────
-AsymmetryPW::AsymmetryPW(const char* r, const char* t,
-                         const char* p, const char* o)
+AsymmetryPW::AsymmetryPW(const char* r, const char* t, const char* p, const char* o)
     : rootFile_(r)
     , treeName_(t)
     , pair_(p)
-    , outDir_(o)
-{
+    , outDir_(o) {
     TFile f(rootFile_.c_str(), "READ");
     if (!f.IsZombie()) {
         if (auto tr = dynamic_cast<TTree*>(f.Get(treeName_.c_str()))) {
@@ -96,11 +94,9 @@ AsymmetryPW::AsymmetryPW(const char* r, const char* t,
                 const char* nm = bl->At(i)->GetName();
 
                 // select purity_X_Y but skip purity_err_X_Y
-                if (strncmp(nm, "purity_", 7) == 0 &&
-                    strncmp(nm, "purity_err_", 11) != 0)
-                {
+                if (strncmp(nm, "purity_", 7) == 0 && strncmp(nm, "purity_err_", 11) != 0) {
                     // push only the first time we encounter this name
-                    if (seen.insert(nm).second) {   
+                    if (seen.insert(nm).second) {
                         purityBranches_.emplace_back(nm);
                         std::cout << "  " << nm << "\n";
                     }

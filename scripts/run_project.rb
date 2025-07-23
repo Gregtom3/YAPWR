@@ -298,8 +298,8 @@ modules.each do |mod|
 
   when 'kinematicBins'
     args = ['ruby', './scripts/modules/module___kinematicBins.rb']
-    # Pretty time-consuming, have it be its own job
-    args << '--slurm' if options[:is_running_on_slurm]
+    # Relatively fast, does not necessarily need to be its own job
+    # args << '--slurm' if options[:is_running_on_slurm]
     args << project_name
     invoke('kinematicBins', *args)
 

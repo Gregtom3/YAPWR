@@ -8,14 +8,13 @@ int main(int argc, char** argv) {
     Logger::setLevel(Logger::Level::Info);
 
     if (argc != 4) {
-        std::cerr << "Usage: " << argv[0]
-                  << " <projectDir> <pionPair> <runPeriod>\n";
+        std::cerr << "Usage: " << argv[0] << " <projectDir> <pionPair> <runPeriod>\n";
         return 1;
     }
 
     std::string projectDir = argv[1];
-    std::string pionPair   = argv[2];
-    std::string runPeriod  = argv[3];
+    std::string pionPair = argv[2];
+    std::string runPeriod = argv[3];
 
     // run the synthesizer
     Synthesizer synth(projectDir, pionPair, runPeriod);
@@ -26,10 +25,7 @@ int main(int argc, char** argv) {
     AsymmetryHandler asym(synth.getResults(), synth.getConfigsMap());
 
     // pick the right region name
-    std::string regionName = 
-        (pionPair == "piplus_pi0" || pionPair == "piminus_pi0")
-        ? "signal_purity_1_1"
-        : "signal";
+    std::string regionName = (pionPair == "piplus_pi0" || pionPair == "piminus_pi0") ? "signal_purity_1_1" : "signal";
 
     // always use "full"
     std::string regionType = "full";
