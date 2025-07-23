@@ -49,12 +49,11 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
 
     leaf = File.dirname(info_path)
     pair = File.basename(File.dirname(leaf))
-
+    tag  = File.basename(leaf)
     # only run on real-data π⁰ combinations
     next unless File.exist?( File.join(leaf, File.basename(orig_tfile)) )
     next unless pair.include?("pi0")
-    next if pair.start_with?("MC_")
-
+    next if tag.start_with?("MC_")
     # collect each root invocation
     cmds = background_regions.map do |bkg|
       sanitized = bkg.
