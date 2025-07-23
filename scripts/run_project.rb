@@ -72,6 +72,7 @@ if options[:slurm]
   project_root = File.join('out', project_name)
   FileUtils.mkdir_p(project_root)
 
+  
   config_files.each do |cfg_path|
     cfg_name  = File.basename(cfg_path, File.extname(cfg_path))
     cfg_dir   = File.join(project_root, "config_#{cfg_name}")
@@ -259,7 +260,8 @@ modules.each do |mod|
 
       # filterTree is pretty 
       args = ['ruby','./scripts/modules/module___filterTree.rb', project_name]
-      args << options[:maxEntries].to_s if options[:maxEntries]
+      args << "--maxEntries=#{options[:maxEntries].to_s}" if options[:maxEntries]
+      args += config_files if config_files.any?
       invoke('filterTree', *args)
 
   when 'purityBinning'
