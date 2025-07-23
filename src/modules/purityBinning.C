@@ -218,20 +218,32 @@ void purityBinning(const char* inputPath, const char* treeName, const char* pair
         // ----------------------------------------------------------------------
         // (re)create branches
         // ----------------------------------------------------------------------
-        std::string bName = Form("purity_%d_%d", N, M);
-        std::string beName = Form("purity_err_%d_%d", N, M);
+        auto recreateBranch = [&](const std::string& name,
+                                  double*            buffer,
+                                  TBranch*&          outPtr)
+        {
+            // If a branch with this name already exists, detach it from the tree
+            if (TBranch* old = t->GetBranch(name.c_str())) {
+                // Remove from the tree’s internal lists so ROOT forgets about it
+                t->GetListOfBranches()->Remove(old);
+                t->GetListOfLeaves()  ->Remove(old->GetLeaf(name.c_str()));
+                delete old;                   // free the memory
+            }
+            // Now (re)build the branch
+            outPtr = t->Branch(name.c_str(), buffer, Form("%s/D", name.c_str()));
+        };
+        
+        std::string bName  = Form("purity_%d_%d",      N, M);
+        std::string beName = Form("purity_err_%d_%d",  N, M);
+        
         double purity_val = 0.0;
         double purity_err = 0.0;
-
-        // if branch exists, delete then recreate
-        if (t->GetBranch(bName.c_str()))
-            t->SetBranchStatus(bName.c_str(), 0);
-        if (t->GetBranch(beName.c_str()))
-            t->SetBranchStatus(beName.c_str(), 0);
-
-        TBranch* bp = t->Branch(bName.c_str(), &purity_val, "p/D");
-        TBranch* bpe = t->Branch(beName.c_str(), &purity_err, "pe/D");
-
+        
+        TBranch* bp  = nullptr;
+        TBranch* bpe = nullptr;
+        recreateBranch(bName,  &purity_val, bp);
+        recreateBranch(beName, &purity_err, bpe);
+        
         // fill event-wise
         for (Long64_t ie = 0; ie < nEnt; ++ie) {
             // find bin indices

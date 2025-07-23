@@ -237,25 +237,30 @@ purity_ids = []
 modules.each do |mod|
   case mod
   when 'filterTree'
-      if options[:is_running_on_slurm]
-        # run in Slurm‑fan‑out mode and capture job‑IDs
-        cmd = ['ruby','./scripts/modules/module___filterTree.rb',
-               '--slurm', project_name]
-        cmd << options[:maxEntries].to_s if options[:maxEntries]
-        out = `#{cmd.shelljoin}`
-        puts out
+      # if options[:is_running_on_slurm]
+      #   # run in Slurm‑fan‑out mode and capture job‑IDs
+      #   cmd = ['ruby','./scripts/modules/module___filterTree.rb',
+      #          '--slurm', project_name]
+      #   cmd << options[:maxEntries].to_s if options[:maxEntries]
+      #   out = `#{cmd.shelljoin}`
+      #   puts out
     
-        filter_ids = []
-        out.each_line.grep(/\[SLURM_JOBS\]/) { |ln| filter_ids += ln.split.last.split(/,/) }
+      #   filter_ids = []
+      #   out.each_line.grep(/\[SLURM_JOBS\]/) { |ln| filter_ids += ln.split.last.split(/,/) }
     
-        # BLOCK here until every filterTree job is done
-        wait_for_slurm_jobs(filter_ids)
-      else
-        # immediate, non‑Slurm execution
-        args = ['ruby','./scripts/modules/module___filterTree.rb', project_name]
-        args << options[:maxEntries].to_s if options[:maxEntries]
-        invoke('filterTree', *args)
-  end
+      #   # BLOCK here until every filterTree job is done
+      #   wait_for_slurm_jobs(filter_ids)
+      # else
+      #   # immediate, non‑Slurm execution
+      #   args = ['ruby','./scripts/modules/module___filterTree.rb', project_name]
+      #   args << options[:maxEntries].to_s if options[:maxEntries]
+      #   invoke('filterTree', *args)
+
+
+      # filterTree is pretty 
+      args = ['ruby','./scripts/modules/module___filterTree.rb', project_name]
+      args << options[:maxEntries].to_s if options[:maxEntries]
+      invoke('filterTree', *args)
 
   when 'purityBinning'
     args = ['ruby', './scripts/modules/module___purityBinning.rb']
@@ -293,25 +298,29 @@ modules.each do |mod|
 
   when 'kinematicBins'
     args = ['ruby', './scripts/modules/module___kinematicBins.rb']
+    # Pretty time-consuming, have it be its own job
     args << '--slurm' if options[:is_running_on_slurm]
     args << project_name
     invoke('kinematicBins', *args)
 
   when 'baryonContamination'
     args = ['ruby', './scripts/modules/module___baryonContamination.rb']
-    args << '--slurm' if options[:is_running_on_slurm]
+    # Very fast, does not need to be its own job
+    #args << '--slurm' if options[:is_running_on_slurm]
     args << project_name
     invoke('baryonContamination', *args)
 
   when 'particleMisidentification'
     args = ['ruby', './scripts/modules/module___particleMisidentification.rb']
-    args << '--slurm' if options[:is_running_on_slurm]
+    # Very fast, does not need to be its own job
+    #args << '--slurm' if options[:is_running_on_slurm]
     args << project_name
     invoke('particleMisidentification', *args)
 
   when 'binMigration'
     args = ['ruby', './scripts/modules/module___binMigration.rb']
-    args << '--slurm' if options[:is_running_on_slurm]
+    # Very fast, does not need to be its own job
+    #args << '--slurm' if options[:is_running_on_slurm]
     args << project_name
     invoke('binMigration', *args)
   else
