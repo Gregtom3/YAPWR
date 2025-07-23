@@ -66,7 +66,7 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
 
   # build ROOT macro command
   macro = %Q{'src/modules/particleMisidentification.C("#{orig_tfile}","#{tree_name}","#{primary_yaml}","#{yaml_path}")'}
-  cmd = ['root', '-l', '-b', '-q', macro]
+  cmd = ['root', '-l', '-b', '-q', macro].join(' ')
 
   if options[:slurm]
     # write sbatch script
@@ -82,7 +82,7 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
     sbatch += "#SBATCH --dependency=#{options[:deps]}\n" if options[:deps]
     sbatch += <<~SLURM
       cd #{Dir.pwd}
-      #{cmd.join(' ')}
+      #{cmd}
     SLURM
 
     script_file = File.join(outdir, "run_pmisid_#{tag}.slurm")
@@ -99,8 +99,8 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
 
   else
     # direct execution
-    puts "[particleMisidentification][#{tag}] RUN: #{cmd.join(' ')}"
-    system(*cmd) or warn "[particleMisidentification] ERROR running for #{tag}"
+    puts "[particleMisidentification][#{tag}] RUN: #{cmd}"
+    system(cmd) or warn "[particleMisidentification] ERROR running for #{tag}"
   end
 end
 

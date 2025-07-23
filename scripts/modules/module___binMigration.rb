@@ -84,7 +84,7 @@ Dir
     "#{primary_yaml}",
     "#{out_root}",
     "#{log_file}" )'}
-  cmd = ['root', '-l', '-b', '-q', macro]
+  cmd = ['root', '-l', '-b', '-q', macro].join(' ')
 
   if options[:slurm]
     # write a lightweight sbatch script
@@ -99,7 +99,7 @@ Dir
       #SBATCH --dependency=#{options[:deps]}
 
       cd #{Dir.pwd}
-      #{cmd.join(' ')}
+      #{cmd}
     SLURM
 
     script_file = File.join(outdir, "run_binMigration_#{tag}.slurm")
@@ -117,8 +117,8 @@ Dir
     end
   else
     # direct execution
-    puts "[binMigration][#{tag}] RUN: #{cmd.join(' ')}"
-    system(*cmd) or warn "[binMigration] ERROR on #{primary_yaml}" 
+    puts "[binMigration][#{tag}] RUN: #{cmd}"
+    system(cmd) or warn "[binMigration] ERROR on #{primary_yaml}" 
   end
 end
 

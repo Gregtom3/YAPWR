@@ -67,7 +67,7 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
     "#{primary_yaml}",
     "#{log_file}"
   )'}
-  cmd = ['root', '-l', '-b', '-q', macro]
+  cmd = ['root', '-l', '-b', '-q', macro].join(' ')
 
   if options[:slurm]
     sbatch = <<~SBATCH
@@ -82,7 +82,7 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
     sbatch << "#SBATCH --dependency=#{options[:deps]}\n" if options[:deps]
     sbatch << <<~SBATCH
       cd #{Dir.pwd}
-      #{cmd.join(' ')}
+      #{cmd}
     SBATCH
 
     script = File.join(outdir, "run_baryonContamination_#{tag}.slurm")
@@ -97,8 +97,8 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
       warn "[baryonContamination] sbatch failed for #{tag}: #{out.strip}"
     end
   else
-    puts "[baryonContamination][#{tag}] RUN: #{cmd.join(' ')}"
-    system(*cmd) or
+    puts "[baryonContamination][#{tag}] RUN: #{cmd}"
+    system(cmd) or
       STDERR.puts("[baryonContamination] ERROR: ROOT macro failed for #{info_path}")
   end
 end

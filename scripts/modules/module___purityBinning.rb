@@ -64,7 +64,7 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
     # build ROOT macro command
     macro = %Q{'src/modules/purityBinning.C("#{filtered_file}","#{ttree}","#{pair}","#{output_dir}")'}
         
-    root_cmd = ['root', '-l', '-b', '-q', macro]
+    root_cmd = ['root', '-l', '-b', '-q', macro].join(' ')
     
 
     if options[:slurm]
@@ -80,7 +80,7 @@ Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
       sbatch << "#SBATCH --dependency=#{options[:deps]}\n" if options[:deps]
       sbatch << <<~SBATCH
         cd #{Dir.pwd}
-        #{root_cmd.join(' ')}
+        #{root_cmd}
       SBATCH
 
       script = File.join(output_dir, "run_purityBinning_#{pair}.slurm")

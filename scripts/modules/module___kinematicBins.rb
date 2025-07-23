@@ -63,7 +63,7 @@ Dir.glob(File.join(out_root, 'config_*')).sort.each do |cfg|
       "#{primary_yaml}",
       "#{outdir}"
     )'}
-    cmd = ['root', '-l', '-b', '-q', macro]
+    cmd = ['root', '-l', '-b', '-q', macro].join(' ')
 
     if options[:slurm]
       # create sbatch script
@@ -79,7 +79,7 @@ Dir.glob(File.join(out_root, 'config_*')).sort.each do |cfg|
       sbatch += "#SBATCH --dependency=#{options[:deps]}\n" if options[:deps]
       sbatch += <<~SLURM
         cd #{Dir.pwd}
-        #{cmd.join(' ')}
+        #{cmd}
       SLURM
 
       script_file = File.join(outdir, "run_kinematicBins_#{pair}.slurm")
@@ -96,8 +96,8 @@ Dir.glob(File.join(out_root, 'config_*')).sort.each do |cfg|
       end
     else
       # direct local execution
-      puts "[kinematicBins][#{pair}] RUN: #{cmd.join(' ')}"
-      system(*cmd) or warn "[kinematicBins] ERROR running for #{pair}" 
+      puts "[kinematicBins][#{pair}] RUN: #{cmd}"
+      system(cmd) or warn "[kinematicBins] ERROR running for #{pair}" 
     end
   end
 end
