@@ -205,84 +205,77 @@ void purityBinning(const char* inputPath, const char* treeName, const char* pair
     t->SetBranchStatus("*", 1);
 
     // prepare / overwrite purity tree ---------------------------------------
-    const std::string purityName=Form("purity_%s",treeName);
-    if(f->Get(purityName.c_str()))
-        f->Delete(Form("%s;*",purityName.c_str())); // nuke previous cycles
+    const std::string purityName = Form("purity_%s", treeName);
+    if (f->Get(purityName.c_str()))
+        f->Delete(Form("%s;*", purityName.c_str())); // nuke previous cycles
 
-    TTree tPur(purityName.c_str(),
-               Form("Per‑event purity branches for %s",treeName));
-
+    TTree tPur(purityName.c_str(), Form("Per‑event purity branches for %s", treeName));
 
     // ----------------------------------------------------------------------
     // 1.  Build lookup tables and declare the friend‑tree branches
     // ----------------------------------------------------------------------
     struct Grid {
         int N{}, M{};
-        std::vector<double> hEdges;   // φ_h  edges  (size N+1)
-        std::vector<BinInfo> table;   // φ_R1 sub‑bins (size N)
-        double val{0.0};              // payload for branch purity_N_M
-        double err{0.0};              // payload for branch purity_err_N_M
+        std::vector<double> hEdges; // φ_h  edges  (size N+1)
+        std::vector<BinInfo> table; // φ_R1 sub‑bins (size N)
+        double val{0.0};            // payload for branch purity_N_M
+        double err{0.0};            // payload for branch purity_err_N_M
     };
 
-    const std::vector<std::pair<int,int>> gridSizes = {
-        {1,1}, {3,3}, {5,5}, {8,8}, {12,12}
-    };
-    
+    const std::vector<std::pair<int, int>> gridSizes = {{1, 1}, {3, 3}, {5, 5}, {8, 8}, {12, 12}};
+
     std::vector<Grid> grids;
-    grids.reserve(gridSizes.size());       
-    
+    grids.reserve(gridSizes.size());
+
     for (auto& gm : gridSizes) {
-        grids.emplace_back();                
+        grids.emplace_back();
         Grid& g = grids.back();
-    
+
         g.N = gm.first;
         g.M = gm.second;
-    
-        doGrid(vph, vpr, vm2, g.N, g.M, outputDir, pairName,
-               g.hEdges, g.table);
-    
-        const std::string b   = Form("purity_%d_%d",     g.N, g.M);
-        const std::string be  = Form("purity_err_%d_%d", g.N, g.M);
-    
-        tPur.Branch(b .c_str(),  &g.val, (b  + "/D").c_str());
-        tPur.Branch(be.c_str(),  &g.err, (be + "/D").c_str());
+
+        doGrid(vph, vpr, vm2, g.N, g.M, outputDir, pairName, g.hEdges, g.table);
+
+        const std::string b = Form("purity_%d_%d", g.N, g.M);
+        const std::string be = Form("purity_err_%d_%d", g.N, g.M);
+
+        tPur.Branch(b.c_str(), &g.val, (b + "/D").c_str());
+        tPur.Branch(be.c_str(), &g.err, (be + "/D").c_str());
     }
-    
+
     // ----------------------------------------------------------------------
     // 2.  Single event loop – compute every grid, then Fill() once
     // ----------------------------------------------------------------------
     for (Long64_t ie = 0; ie < nEnt; ++ie) {
-    
+
         // --- look‑up: vph[ie] = φ_h ,  vpr[ie] = φ_R1 --------------------
-        for (auto &g : grids) {
-    
-            int iH = std::upper_bound(g.hEdges.begin(), g.hEdges.end(),
-                                      vph[ie]) - g.hEdges.begin() - 1;
-    
-            if (iH < 0 || iH >= g.N) {               // outside φ_h grid
+        for (auto& g : grids) {
+
+            int iH = std::upper_bound(g.hEdges.begin(), g.hEdges.end(), vph[ie]) - g.hEdges.begin() - 1;
+
+            if (iH < 0 || iH >= g.N) { // outside φ_h grid
                 g.val = g.err = -1.0;
                 continue;
             }
-    
-            const auto &rE = g.table[iH].rEdges;      // φ_R1 edges for this φ_h slice
-            int iR = std::upper_bound(rE.begin(), rE.end(),
-                                      vpr[ie]) - rE.begin() - 1;
-    
-            if (iR < 0 || iR >= g.M) {               // outside φ_R1 grid
+
+            const auto& rE = g.table[iH].rEdges; // φ_R1 edges for this φ_h slice
+            int iR = std::upper_bound(rE.begin(), rE.end(), vpr[ie]) - rE.begin() - 1;
+
+            if (iR < 0 || iR >= g.M) { // outside φ_R1 grid
                 g.val = g.err = -1.0;
-            } else {                                 // inside both bins
-                g.val = g.table[iH].purity    [iR];
-                g.err = g.table[iH].purityErr [iR];
+            } else { // inside both bins
+                g.val = g.table[iH].purity[iR];
+                g.err = g.table[iH].purityErr[iR];
             }
         }
-        tPur.Fill();   // <- writes all grid branches for this event
+        tPur.Fill(); // <- writes all grid branches for this event
     }
-    
+
     // ----------------------------------------------------------------------
     // 3.  Persist friend tree
     // ----------------------------------------------------------------------
     f->cd();
-    tPur.Write("", TObject::kOverwrite);   // overwrite previous cycles if any
+    tPur.Write("", TObject::kOverwrite); // overwrite previous cycles if any
     t->SetBranchStatus("*", 1);
     f->Close();
 }
