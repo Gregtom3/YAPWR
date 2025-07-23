@@ -169,6 +169,7 @@ void AsymmetryPW::Loop() {
     RooRealVar phi_R1("phi_R1", "phi_R1", -TMath::Pi(), TMath::Pi());
     RooRealVar th("th", "th", 0, TMath::Pi());
     RooRealVar hel("hel", "hel", -1, 1);
+    RooRealVar Pol("Pol", "Pol", -1, 1);
     RooRealVar M2("M2", "M2", 0, 10); // wide range
 
     // create RooRealVars for every purity_N_M
@@ -176,7 +177,7 @@ void AsymmetryPW::Loop() {
     for (auto& nm : purityBranches_)
         purityVars.push_back(new RooRealVar(nm.c_str(), nm.c_str(), -10, 10));
 
-    RooArgSet obs(phi_h, phi_R1, th, hel, M2);
+    RooArgSet obs(phi_h, phi_R1, th, Pol, hel, M2);
     for (auto* pv : purityVars)
         obs.add(*pv);
 
@@ -209,10 +210,10 @@ void AsymmetryPW::Loop() {
                 pvec.push_back(v);
                 tvec.push_back(t.name);
             }
-            RooArgList pdfObs(phi_h, phi_R1, th, hel);
+            RooArgList pdfObs(phi_h, phi_R1, th, hel, Pol);
             RooArgList all(pdfObs);
             all.add(p);
-            std::string expr = "1 + hel * (" + buildMod("bkg_", false) + ")";
+            std::string expr = "1 + Pol * hel * (" + buildMod("bkg_", false) + ")";
             RooGenericPdf pdf("bkgpdf", "bkgpdf", expr.c_str(), all);
             std::cout << "Fitting..." << std::endl;
 
@@ -266,9 +267,9 @@ void AsymmetryPW::Loop() {
             std::string sig = buildMod(pref, false);
             std::string bkgF = buildMod("", true, bkgVal);
             std::string mod = pi0 ? (puName + "*(" + sig + ") + (1-" + puName + ")*(" + bkgF + ")") : sig;
-            std::string expr = "1 + hel * (" + mod + ")";
+            std::string expr = "1 + Pol * hel * (" + mod + ")";
 
-            RooArgList pdfObs(phi_h, phi_R1, th, hel);
+            RooArgList pdfObs(phi_h, phi_R1, th, hel, Pol);
             pdfObs.add(*purityVars[ip]); // this branch only
             RooArgList all(pdfObs);
             all.add(pars);
@@ -304,10 +305,10 @@ void AsymmetryPW::Loop() {
                 pvec.push_back(v);
                 tvec.push_back(t.name);
             }
-            RooArgList pdfObs(phi_h, phi_R1, th, hel);
+            RooArgList pdfObs(phi_h, phi_R1, th, hel, Pol);
             RooArgList all(pdfObs);
             all.add(p);
-            std::string expr = "1 + hel * (" + buildMod("signal_", false) + ")";
+            std::string expr = "1 + Pol * hel * (" + buildMod("signal_", false) + ")";
             RooGenericPdf pdf("sigpdf", "sigpdf", expr.c_str(), all);
             std::cout << "Fitting..." << std::endl;
 
