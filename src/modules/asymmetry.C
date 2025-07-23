@@ -70,7 +70,10 @@ public:
 private:
     void buildTerms();
     std::string buildMod(const std::string& pref, bool numeric = false, const std::vector<double>& val = {}) const;
-
+    bool pi0;
+    TTree *ftree;
+    TFile *f;
+    TTree *tree;
     std::string rootFile_, treeName_, pair_, outDir_;
     std::vector<TermDesc> termList_;
     std::vector<std::string> purityBranches_; // purity_* names
@@ -82,29 +85,40 @@ AsymmetryPW::AsymmetryPW(const char* r, const char* t, const char* p, const char
     , treeName_(t)
     , pair_(p)
     , outDir_(o) {
-    TFile f(rootFile_.c_str(), "READ");
-    if (!f.IsZombie()) {
-        if (auto tr = dynamic_cast<TTree*>(f.Get(treeName_.c_str()))) {
-            std::cout << "unique purity branches in " << treeName_ << ":\n";
+        
+    pi0 = (std::string(pair_) == "piplus_pi0" || std::string(pair_) == "piminus_pi0");
+    f = new TFile(rootFile_.c_str(), "READ");
+    if (f->IsZombie()) {
+        std::cerr << "bad file\n";
+        return;
+    }
+    tree = static_cast<TTree*>(f->Get(treeName_.c_str()));
+    if (!tree) {
+        std::cerr << "tree missing\n";
+        return;
+    }
+        
+    if (!f->IsZombie() && pi0) {
+        ftree = static_cast<TTree*>(f->Get(("purity_"+treeName_).c_str()));
+        tree->AddFriend(ftree);
+        std::cout << "unique purity branches in " << treeName_ << ":\n";
+        
+        TObjArray* bl = ftree->GetListOfBranches();
+        std::unordered_set<std::string> seen;
 
-            TObjArray* bl = tr->GetListOfBranches();
-            std::unordered_set<std::string> seen;
+        for (int i = 0; i < bl->GetEntries(); ++i) {
+            const char* nm = bl->At(i)->GetName();
 
-            for (int i = 0; i < bl->GetEntries(); ++i) {
-                const char* nm = bl->At(i)->GetName();
-
-                // select purity_X_Y but skip purity_err_X_Y
-                if (strncmp(nm, "purity_", 7) == 0 && strncmp(nm, "purity_err_", 11) != 0) {
-                    // push only the first time we encounter this name
-                    if (seen.insert(nm).second) {
-                        purityBranches_.emplace_back(nm);
-                        std::cout << "  " << nm << "\n";
-                    }
+            // select purity_X_Y but skip purity_err_X_Y
+            if (strncmp(nm, "purity_", 7) == 0 && strncmp(nm, "purity_err_", 11) != 0) {
+                // push only the first time we encounter this name
+                if (seen.insert(nm).second) {
+                    purityBranches_.emplace_back(nm);
+                    std::cout << "  " << nm << "\n";
                 }
             }
         }
     }
-    f.Close();
     buildTerms();
 }
 
@@ -150,17 +164,8 @@ void AsymmetryPW::Loop() {
     std::ofstream yaml(outDir_ + "/" + gOutputFilename);
     yaml << "results:\n";
 
-    // open ROOT
-    TFile f(rootFile_.c_str(), "READ");
-    if (f.IsZombie()) {
-        std::cerr << "bad file\n";
-        return;
-    }
-    auto* tree = static_cast<TTree*>(f.Get(treeName_.c_str()));
-    if (!tree) {
-        std::cerr << "tree missing\n";
-        return;
-    }
+
+    
 
     // observables
     RooRealVar phi_h("phi_h", "phi_h", -TMath::Pi(), TMath::Pi());
@@ -180,7 +185,6 @@ void AsymmetryPW::Loop() {
 
     RooDataSet full("full", "full", tree, obs);
 
-    bool pi0 = (std::string(pair_) == "piplus_pi0" || std::string(pair_) == "piminus_pi0");
 
     // prepare data sets
     RooDataSet* dBack = nullptr;
@@ -340,7 +344,7 @@ void AsymmetryPW::Loop() {
     }
     for (auto* pv : purityVars)
         delete pv;
-    f.Close();
+    f->Close();
     yaml.close();
     std::cout << "Wrote " << outDir_ << "/" << gOutputFilename << "\n";
 }
