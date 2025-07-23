@@ -24,8 +24,7 @@ Result AsymmetryProcessor::loadData(const std::filesystem::path& dir) const {
         return r;
     }
 
-    // 2) attempt to load the YAML, return empty on failure
-    YAML::Node doc;
+    YAML::Node doc = YAML::LoadFile(yamlPath.string());
     try {
         // Loop over each region block
         for (const auto& node : doc["results"]) {
@@ -56,6 +55,7 @@ Result AsymmetryProcessor::loadData(const std::filesystem::path& dir) const {
         LOG_ERROR("Failed to load YAML '" + yamlPath.string() + "': " + e.what());
         return r;
     }
+
 
     return r;
 }
