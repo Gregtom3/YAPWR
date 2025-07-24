@@ -53,13 +53,14 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
   FileUtils.mkdir_p(outdir)
   yaml_path = File.join(outdir, "particleMisidentification.yaml")
 
-  puts "[particleMisidentification][#{tag}] #{filtered_tfile} → #{yaml_path}"
+
 
   # ascend to config_<NAME> dir
   cfg_dir      = leaf_dir
   cfg_dir      = File.dirname(cfg_dir) until File.basename(cfg_dir).start_with?("config_")
   cfg_name     = File.basename(cfg_dir).sub(/^config_/, '')
   next if user_configs.any? && user_configs.none? { |c| File.basename(cfg_dir).include?(c) }
+  puts "[particleMisidentification][#{tag}] #{filtered_tfile} → #{yaml_path}"
   primary_yaml = File.join(cfg_dir, "#{cfg_name}.yaml")
   unless File.exist?(primary_yaml)
     STDERR.puts "[particleMisidentification][#{tag}] WARNING: primary YAML not found: #{primary_yaml}"
