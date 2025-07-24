@@ -238,7 +238,7 @@ purity_ids = []
 modules.each do |mod|
   case mod
   when 'filterTree'
-      args = ['ruby','./new_scripts/modules/module___filterTree.rb', project_name]
+      args = ['ruby','./scripts/modules/module___filterTree.rb', project_name]
       args += ["--maxEntries","#{options[:maxEntries].to_i}"] if options[:maxEntries]
       args += config_files if config_files.any?
 
@@ -246,7 +246,7 @@ modules.each do |mod|
       invoke('filterTree', *args)
 
   when 'purityBinning'
-    args = ['ruby', './new_scripts/modules/module___purityBinning.rb']
+    args = ['ruby', './scripts/modules/module___purityBinning.rb']
 
     args << '--slurm' if options[:is_running_on_slurm]
     args << project_name
@@ -263,7 +263,7 @@ modules.each do |mod|
     end
 
   when 'asymmetry'
-    args = ['ruby', './new_scripts/modules/module___asymmetry.rb']
+    args = ['ruby', './scripts/modules/module___asymmetry.rb']
 
     args << '--slurm' if options[:is_running_on_slurm]
     if options[:is_running_on_slurm] && purity_ids.any?
@@ -274,7 +274,7 @@ modules.each do |mod|
     invoke('asymmetry', *args)
 
   when 'asymmetry_sideband'
-    args = ['ruby', './new_scripts/modules/module___asymmetry_sideband.rb']
+    args = ['ruby', './scripts/modules/module___asymmetry_sideband.rb']
     args << '--slurm' if options[:is_running_on_slurm]
     if options[:is_running_on_slurm] && purity_ids.any?
       args << '--dependency' << "afterok:#{purity_ids.join(',')}"
@@ -284,7 +284,7 @@ modules.each do |mod|
     invoke('asymmetry_sideband', *args)
 
   when 'kinematicBins'
-    args = ['ruby', './new_scripts/modules/module___kinematicBins.rb']
+    args = ['ruby', './scripts/modules/module___kinematicBins.rb']
     # Relatively fast, does not necessarily need to be its own job
     # args << '--slurm' if options[:is_running_on_slurm]
     args << project_name
@@ -292,7 +292,7 @@ modules.each do |mod|
     invoke('kinematicBins', *args)
 
   when 'baryonContamination'
-    args = ['ruby', './new_scripts/modules/module___baryonContamination.rb']
+    args = ['ruby', './scripts/modules/module___baryonContamination.rb']
     # Very fast, does not need to be its own job
     #args << '--slurm' if options[:is_running_on_slurm]
     args << project_name
@@ -300,7 +300,7 @@ modules.each do |mod|
     invoke('baryonContamination', *args)
 
   when 'particleMisidentification'
-    args = ['ruby', './new_scripts/modules/module___particleMisidentification.rb']
+    args = ['ruby', './scripts/modules/module___particleMisidentification.rb']
     # Very fast, does not need to be its own job
     #args << '--slurm' if options[:is_running_on_slurm]
     args << project_name
@@ -308,7 +308,7 @@ modules.each do |mod|
     invoke('particleMisidentification', *args)
 
   when 'binMigration'
-    args = ['ruby', './new_scripts/modules/module___binMigration.rb']
+    args = ['ruby', './scripts/modules/module___binMigration.rb']
     # Very fast, does not need to be its own job
     #args << '--slurm' if options[:is_running_on_slurm]
     args << project_name
