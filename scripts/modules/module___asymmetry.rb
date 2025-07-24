@@ -11,7 +11,6 @@ class AsymmetryPWRunner < ModuleRunner
     !tag.start_with?('MC_')
   end
 
-  # asymmetry macro writes into a directory, not a single yaml → we just ignore result_yaml_name
   def process_leaf(ctx)
     pair   = File.basename(File.dirname(ctx[:leaf_dir]))
     outdir = File.join(ctx[:leaf_dir], out_subdir)
@@ -21,8 +20,6 @@ class AsymmetryPWRunner < ModuleRunner
     run_job(ctx[:tag], outdir, cmd)
   end
 
-  # Build the macro string your script used:
-  # 'src/modules/asymmetry.C("filtered","tree","pair","outdir")'
   def macro_call(ctx)
     %Q{'src/modules/asymmetry.C("#{ctx[:filtered_tfile]}","#{ctx[:tree_name]}","#{ctx[:pair]}","#{ctx[:outdir]}")'}
   end
