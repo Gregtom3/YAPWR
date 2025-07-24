@@ -238,27 +238,6 @@ purity_ids = []
 modules.each do |mod|
   case mod
   when 'filterTree'
-      # if options[:is_running_on_slurm]
-      #   # run in Slurm‑fan‑out mode and capture job‑IDs
-      #   cmd = ['ruby','./scripts/modules/module___filterTree.rb',
-      #          '--slurm', project_name]
-      #   cmd << options[:maxEntries].to_s if options[:maxEntries]
-      #   out = `#{cmd.shelljoin}`
-      #   puts out
-    
-      #   filter_ids = []
-      #   out.each_line.grep(/\[SLURM_JOBS\]/) { |ln| filter_ids += ln.split.last.split(/,/) }
-    
-      #   # BLOCK here until every filterTree job is done
-      #   wait_for_slurm_jobs(filter_ids)
-      # else
-      #   # immediate, non‑Slurm execution
-      #   args = ['ruby','./scripts/modules/module___filterTree.rb', project_name]
-      #   args << options[:maxEntries].to_s if options[:maxEntries]
-      #   invoke('filterTree', *args)
-
-
-      # filterTree is pretty 
       args = ['ruby','./scripts/modules/module___filterTree.rb', project_name]
       args << "--maxEntries=#{options[:maxEntries].to_s}" if options[:maxEntries]
       args += config_files if config_files.any?
@@ -266,9 +245,10 @@ modules.each do |mod|
 
   when 'purityBinning'
     args = ['ruby', './scripts/modules/module___purityBinning.rb']
+
     args << '--slurm' if options[:is_running_on_slurm]
     args << project_name
-
+    args += config_files if config_files.any?
     if options[:is_running_on_slurm]
       out = `#{args.shelljoin}`
       puts out
@@ -282,11 +262,13 @@ modules.each do |mod|
 
   when 'asymmetry'
     args = ['ruby', './scripts/modules/module___asymmetry.rb']
+
     args << '--slurm' if options[:is_running_on_slurm]
     if options[:is_running_on_slurm] && purity_ids.any?
       args << '--dependency' << "afterok:#{purity_ids.join(',')}"
     end
     args << project_name
+    args += config_files if config_files.any?
     invoke('asymmetry', *args)
 
   when 'asymmetry_sideband'
@@ -296,6 +278,7 @@ modules.each do |mod|
       args << '--dependency' << "afterok:#{purity_ids.join(',')}"
     end
     args << project_name
+    args += config_files if config_files.any?
     invoke('asymmetry_sideband', *args)
 
   when 'kinematicBins'
@@ -303,6 +286,7 @@ modules.each do |mod|
     # Relatively fast, does not necessarily need to be its own job
     # args << '--slurm' if options[:is_running_on_slurm]
     args << project_name
+    args += config_files if config_files.any?
     invoke('kinematicBins', *args)
 
   when 'baryonContamination'
@@ -310,6 +294,7 @@ modules.each do |mod|
     # Very fast, does not need to be its own job
     #args << '--slurm' if options[:is_running_on_slurm]
     args << project_name
+    args += config_files if config_files.any?
     invoke('baryonContamination', *args)
 
   when 'particleMisidentification'
@@ -317,6 +302,7 @@ modules.each do |mod|
     # Very fast, does not need to be its own job
     #args << '--slurm' if options[:is_running_on_slurm]
     args << project_name
+    args += config_files if config_files.any?
     invoke('particleMisidentification', *args)
 
   when 'binMigration'
@@ -324,6 +310,7 @@ modules.each do |mod|
     # Very fast, does not need to be its own job
     #args << '--slurm' if options[:is_running_on_slurm]
     args << project_name
+    args += config_files if config_files.any?
     invoke('binMigration', *args)
   else
     warn "WARNING: unknown module '#{mod}' – skipped"

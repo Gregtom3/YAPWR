@@ -13,7 +13,7 @@ require 'optparse'
 # ------------------------------------------------------------------
 options = { slurm: false, deps: nil }
 OptionParser.new do |opts|
-  opts.banner = "Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME"
+  opts.banner = "Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME [CONFIG...]"
   opts.on('--slurm', 'Submit each job via sbatch instead of running locally') do
     options[:slurm] = true
   end
@@ -26,13 +26,15 @@ OptionParser.new do |opts|
   end
 end.order!
 
-project = ARGV.shift or abort("Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME")
+project = ARGV.shift or abort("Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME [CONFIG...]")
 out_root = File.join('out', project)
 abort "ERROR: #{out_root} not found" unless Dir.exist?(out_root)
-
+user_configs = ARGV.map { |c| "config_#{File.basename(c, File.extname(c))}" }
 job_ids = []
 
 Dir.glob(File.join(out_root, 'config_*')).sort.each do |cfg|
+  cfg_name = File.basename(cfg)
+  next if user_configs.any? && user_configs.none? { |c| cfg_name.include?(c) }
   Dir.glob(File.join(cfg, '**', 'tree_info.yaml')).sort.each do |tinfo|
     info  = YAML.load_file(tinfo)
     ttree = info['ttree']

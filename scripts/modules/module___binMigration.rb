@@ -13,7 +13,7 @@ require 'optparse'
 # ------------------------------------------------------------------
 options = { slurm: false, deps: nil }
 OptionParser.new do |opts|
-  opts.banner = "Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME"
+  opts.banner = "Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME [CONFIG...]"
   opts.on('--slurm',    'Submit each job via sbatch instead of running locally') do
     options[:slurm] = true
   end
@@ -27,13 +27,13 @@ OptionParser.new do |opts|
 end.order!
 
 project = ARGV.shift or begin
-  STDERR.puts "Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME"
+  STDERR.puts "Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME [CONFIG...]"
   exit 1
 end
 
 out_root = File.join('out', project)
 abort "ERROR: '#{out_root}' does not exist" unless Dir.exist?(out_root)
-
+user_configs = ARGV.map { |c| "config_#{File.basename(c, File.extname(c))}" }
 job_ids = []
 
 # iterate over all tree_info.yaml under MC-tagged leaves
@@ -60,6 +60,7 @@ Dir
   cfg_dir  = leaf_dir
   cfg_dir  = File.dirname(cfg_dir) until File.basename(cfg_dir).start_with?('config_')
   cfg_name = File.basename(cfg_dir).sub(/^config_/, '')
+  next if user_configs.any? && user_configs.none? { |c| File.basename(cfg_dir).include?(c) }
   primary_yaml = File.join(cfg_dir, "#{cfg_name}.yaml")
 
   unless File.exist?(primary_yaml)

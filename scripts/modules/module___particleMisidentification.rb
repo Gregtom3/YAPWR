@@ -13,7 +13,7 @@ require 'optparse'
 # ------------------------------------------------------------------
 options = { slurm: false, deps: nil }
 OptionParser.new do |opts|
-  opts.banner = "Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME"
+  opts.banner = "Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME [CONFIG...]"
   opts.on('--slurm', 'Submit each job via sbatch instead of running locally') do
     options[:slurm] = true
   end
@@ -26,7 +26,8 @@ OptionParser.new do |opts|
   end
 end.order!
 
-project = ARGV.shift or abort("Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME")
+project = ARGV.shift or abort("Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME [CONFIG...]")
+user_configs = ARGV.map { |c| "config_#{File.basename(c, File.extname(c))}" }
 out_root = File.join("out", project)
 abort "ERROR: '#{out_root}' does not exist" unless Dir.exist?(out_root)
 
@@ -58,6 +59,7 @@ Dir.glob(File.join(out_root, "config_*", "**", "tree_info.yaml")).sort.each do |
   cfg_dir      = leaf_dir
   cfg_dir      = File.dirname(cfg_dir) until File.basename(cfg_dir).start_with?("config_")
   cfg_name     = File.basename(cfg_dir).sub(/^config_/, '')
+  next if user_configs.any? && user_configs.none? { |c| File.basename(cfg_dir).include?(c) }
   primary_yaml = File.join(cfg_dir, "#{cfg_name}.yaml")
   unless File.exist?(primary_yaml)
     STDERR.puts "[particleMisidentification][#{tag}] WARNING: primary YAML not found: #{primary_yaml}"
