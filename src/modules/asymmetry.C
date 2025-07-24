@@ -100,6 +100,10 @@ AsymmetryPW::AsymmetryPW(const char* r, const char* t, const char* p, const char
 
     if (!f->IsZombie() && pi0) {
         ftree = static_cast<TTree*>(f->Get(("purity_" + treeName_).c_str()));
+        if(!ftree){
+            std::cerr << "missing friend tree for pi0 --- forgot to run purityBinning?\n";
+            return;
+        }
         tree->AddFriend(ftree);
         std::cout << "unique purity branches in " << treeName_ << ":\n";
 
