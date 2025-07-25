@@ -5,6 +5,8 @@
 #include <TCanvas.h>
 #include <TStyle.h>
 #include <TObject.h>
+#include <TColor.h>          
+#include <algorithm>       
 
 // Self register
 namespace {
@@ -63,10 +65,10 @@ Result BaryonContaminationProcessor::loadData(const std::filesystem::path& dir) 
 }
 
 void BaryonContaminationProcessor::plotSummary(const std::string& moduleOutDir, const Config& cfg) const {
-    std::filesystem::path dir = effectiveOutDir(moduleOutDir, cfg);
-    // We assume moduleOutDir already points at ".../runPeriod/module-out___baryonContamination"
-    auto yamlPath = dir / std::string("baryonContamination.yaml");
-    if (!std::filesystem::exists(yamlPath)) {
+    namespace fs = std::filesystem;
+    fs::path dir = effectiveOutDir(moduleOutDir, cfg);
+    auto yamlPath = dir / "baryonContamination.yaml";
+    if (!fs::exists(yamlPath)) {
         LOG_ERROR("plotSummary: YAML not found: " + yamlPath.string());
         return;
     }
@@ -77,75 +79,91 @@ void BaryonContaminationProcessor::plotSummary(const std::string& moduleOutDir, 
         "trueparentpid_1", "trueparentpid_2",
         "trueparentparentpid_1", "trueparentparentpid_2"
     };
+    std::map<int,int> globalCounts;
 
-    // If you prefer one global pie, accumulate across sections:
-    std::map<int, int> globalCounts;
+    // color palette for up to 5 slices
+    static const Color_t sliceColors[5] = {
+        kRed, kBlue, kGreen+2, kMagenta, kCyan
+    };
 
-    // Also keep per-section pies
-    for (const auto& sec : sections) {
+    // --- per‐section pies ---
+    for (auto const& sec : sections) {
         if (!root[sec]) continue;
 
+        // collect counts
+        std::map<int,int> sectionCounts;
+        for (auto const& kv : root[sec]) {
+            int pid   = std::stoi(kv.first.as<std::string>());
+            int cnt   = kv.second.as<int>();
+            sectionCounts[pid] = cnt;
+            globalCounts[pid] += cnt;
+        }
+        if (sectionCounts.empty()) continue;
+
+        // move into vector and sort descending
+        std::vector<std::pair<int,int>> vec(sectionCounts.begin(), sectionCounts.end());
+        std::sort(vec.begin(), vec.end(),
+            [](auto &a, auto &b){ return a.second > b.second; });
+        if (vec.size() > 5) vec.resize(5);
+
+        // build vals/labels
         std::vector<double> vals;
         std::vector<std::string> labels;
-
-        for (const auto& kv : root[sec]) {
-            int pid   = std::stoi(kv.first.as<std::string>());
-            int count = kv.second.as<int>();
-            vals.push_back(count);
-            labels.push_back(std::to_string(pid));
-            globalCounts[pid] += count;
+        for (auto &pr : vec) {
+            labels.push_back(std::to_string(pr.first));
+            vals.push_back(pr.second);
         }
 
-        if (vals.empty()) continue;
-
-        std::string cname = "c_" + sec;
-        TCanvas* c = new TCanvas(cname.c_str(), sec.c_str(), 800, 600);
+        // draw
+        TCanvas* c = new TCanvas(("c_"+sec).c_str(), sec.c_str(), 800,600);
         gKeepAlive.push_back(c);
 
-        TPie* pie = new TPie(("pie_" + sec).c_str(), sec.c_str(), static_cast<Int_t>(vals.size()));
+        TPie* pie = new TPie(("pie_"+sec).c_str(), sec.c_str(), vals.size());
         gKeepAlive.push_back(pie);
 
         for (size_t i = 0; i < vals.size(); ++i) {
             pie->SetEntryVal(i, vals[i]);
             pie->SetEntryLabel(i, labels[i].c_str());
+            pie->SetEntryFillColor(i, sliceColors[i]);  // distinct color
         }
-
         pie->SetRadius(0.35);
-        pie->Draw("nol"); // "nol" = no legend if you do not want TPaveText clutter
+        pie->Draw("nol");
 
-        // Save
-        std::string base = (dir / ("baryonContamination_" + sec)).string();
-        c->SaveAs((base + ".png").c_str());
-        c->SaveAs((base + ".pdf").c_str());
+        std::string base = (dir / ("baryonContamination_"+sec)).string();
+        c->SaveAs((base+".png").c_str());
+        c->SaveAs((base+".pdf").c_str());
     }
 
-    // One global combined pie
-    {
+    // --- global pie (top 5 overall) ---
+    if (!globalCounts.empty()) {
+        std::vector<std::pair<int,int>> gvec(globalCounts.begin(), globalCounts.end());
+        std::sort(gvec.begin(), gvec.end(),
+            [](auto &a, auto &b){ return a.second > b.second; });
+        if (gvec.size() > 5) gvec.resize(5);
+
         std::vector<double> vals;
         std::vector<std::string> labels;
-        vals.reserve(globalCounts.size());
-        labels.reserve(globalCounts.size());
-        for (auto& kv : globalCounts) {
-            vals.push_back(kv.second);
-            labels.push_back(std::to_string(kv.first));
+        for (auto &pr : gvec) {
+            labels.push_back(std::to_string(pr.first));
+            vals.push_back(pr.second);
         }
-        if (!vals.empty()) {
-            TCanvas* c = new TCanvas("c_baryon_global", "baryonContamination (all)", 800, 600);
-            gKeepAlive.push_back(c);
 
-            TPie* pie = new TPie("pie_baryon_global", "All sources", static_cast<Int_t>(vals.size()));
-            gKeepAlive.push_back(pie);
+        TCanvas* c = new TCanvas("c_baryon_global","baryonContamination (top 5)",800,600);
+        gKeepAlive.push_back(c);
 
-            for (size_t i = 0; i < vals.size(); ++i) {
-                pie->SetEntryVal(i, vals[i]);
-                pie->SetEntryLabel(i, labels[i].c_str());
-            }
-            pie->SetRadius(0.35);
-            pie->Draw("nol");
+        TPie* pie = new TPie("pie_baryon_global","All sources (top 5)", vals.size());
+        gKeepAlive.push_back(pie);
 
-            std::string base = (dir / "baryonContamination_all").string();
-            c->SaveAs((base + ".png").c_str());
-            c->SaveAs((base + ".pdf").c_str());
+        for (size_t i = 0; i < vals.size(); ++i) {
+            pie->SetEntryVal(i, vals[i]);
+            pie->SetEntryLabel(i, labels[i].c_str());
+            pie->SetEntryFillColor(i, sliceColors[i]);
         }
+        pie->SetRadius(0.35);
+        pie->Draw("nol");
+
+        std::string base = (dir / "baryonContamination_all").string();
+        c->SaveAs((base+".png").c_str());
+        c->SaveAs((base+".pdf").c_str());
     }
 }
