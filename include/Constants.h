@@ -71,9 +71,10 @@ inline const std::unordered_map<int, ParticleInfo>& particlePalette() {
         {321, {321, "K^{+}", "K^{+}", "#8E44AD",false,true}},
         {-321, {-321, "K^{-}", "K^{-}", "#A569BD",false,true}},
         {130, {130, "K^{0}_{#,L}", "K^{0}_{L}", "#FF5733",false,true}},
-        {11, {11, "Electron", "e^{-}", "#0072B2"}},
-        {-11, {-11, "Positron", "e^{+}", "#56B4E9"}},
-        {22, {22, "Photon", "#gamma", "#009E73"}}
+        {11, {11, "Electron", "e^{-}", "#0072B2",false,false}},
+        {-11, {-11, "Positron", "e^{+}", "#56B4E9",false,false}},
+        {22, {22, "Photon", "#gamma", "#009E73",false,false}},
+        {2212, {2212, "Proton", "p", "#c5b0d5",true,false}},
     };
     return tbl;
 }

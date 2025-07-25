@@ -115,6 +115,10 @@ void BaryonContaminationProcessor::plotSummary(const std::string& moduleOutDir,
         std::map<int,int> baryonCounts;
         for (auto const& pr : counts) {
             int pid = pr.first, cnt = pr.second;
+            if (pid == 2212) {
+                nonBaryonSum += cnt;
+                continue;
+            }
             auto it = pmap.find(pid);
             bool isBaryon = (it != pmap.end()) && it->second.isBaryon;
             if (isBaryon) {
