@@ -24,6 +24,8 @@ public:
         return true;
     }
 
+    virtual void plotSummary(const std::string& moduleOutDir /*moduleOutDir*/, const Config& /*cfg*/) const {}
+
 protected:
     /// Modules that want to swap in MC‑period override this to return true.
     virtual bool useMcPeriod() const {
