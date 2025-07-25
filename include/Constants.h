@@ -83,11 +83,11 @@ inline const std::unordered_map<int, ParticleInfo>& particlePalette() {
 /** pion pair → LaTeX‑ready label */
 inline const std::unordered_map<std::string, std::string>& pionPairLatex() {
     static const std::unordered_map<std::string, std::string> table = {
-        {"piplus_pi0",    "\\pi^{+}\\pi^{0}"},
-        {"piminus_pi0",   "\\pi^{-}\\pi^{0}"},
-        {"piplus_piplus", "\\pi^{+}\\pi^{+}"},
-        {"piplus_piminus","\\pi^{+}\\pi^{-}"},
-        {"piminus_piminus","\\pi^{-}\\pi^{-}"}
+        {"piplus_pi0",    "#pi^{+}#pi^{0}"},
+        {"piminus_pi0",   "#pi^{-}#pi^{0}"},
+        {"piplus_piplus", "#pi^{+}#pi^{+}"},
+        {"piplus_piminus","#pi^{+}#pi^{-}"},
+        {"piminus_piminus","#pi^{-}#pi^{-}"}
     };
     return table;
 }
@@ -95,9 +95,9 @@ inline const std::unordered_map<std::string, std::string>& pionPairLatex() {
 /** single‑hadron name → LaTeX label */
 inline const std::unordered_map<std::string, std::string>& hadronNameLatex() {
     static const std::unordered_map<std::string, std::string> m = {
-        {"piplus",  "\\pi^{+}"},
-        {"piminus", "\\pi^{-}"},
-        {"pi0",     "\\pi^{0}"}
+        {"piplus",  "#pi^{+}"},
+        {"piminus", "#pi^{-}"},
+        {"pi0",     "#pi^{0}"}
     };
     return m;
 }

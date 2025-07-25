@@ -97,7 +97,7 @@ void Synthesizer::runAll() {
             }
 
             auto res = proc->process(modPath.string(), cfg);
-            if (proc->name() == "baryonContamination") {
+            if (proc->name() == "baryonContamination" || proc->name() == "particleMisidentification") {
                 proc->plotSummary(modPath.string(), cfg);
             }
             // Debuggable print statement

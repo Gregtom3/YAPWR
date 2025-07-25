@@ -15,7 +15,7 @@ public:
         LOG_INFO("Using module-out directory: " + dir.string());
         return loadData(dir);
     }
-
+    void plotSummary(const std::string& moduleOutDir, const Config& cfg) const override;
 protected:
     bool useMcPeriod() const override {
         return true;
