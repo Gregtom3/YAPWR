@@ -7,6 +7,8 @@
 #include <TObject.h>
 #include <TColor.h>          
 #include <algorithm>       
+#include <TLegend.h>
+#include <TLatex.h>
 
 // Self register
 namespace {
@@ -64,7 +66,10 @@ Result BaryonContaminationProcessor::loadData(const std::filesystem::path& dir) 
     return r;
 }
 
-void BaryonContaminationProcessor::plotSummary(const std::string& moduleOutDir, const Config& cfg) const {
+
+void BaryonContaminationProcessor::plotSummary(const std::string& moduleOutDir,
+                                               const Config& cfg) const
+{
     namespace fs = std::filesystem;
     fs::path dir = effectiveOutDir(moduleOutDir, cfg);
     auto yamlPath = dir / "baryonContamination.yaml";
@@ -75,95 +80,119 @@ void BaryonContaminationProcessor::plotSummary(const std::string& moduleOutDir, 
 
     YAML::Node root = YAML::LoadFile(yamlPath.string());
 
-    static const std::vector<std::string> sections = {
-        "trueparentpid_1", "trueparentpid_2",
-        "trueparentparentpid_1", "trueparentparentpid_2"
-    };
-    std::map<int,int> globalCounts;
+    // pick exactly two sections
+    std::vector<std::string> sections;
+    if (cfg.contains_pi0()) {
+        sections = { "trueparentpid_1", "trueparentparentpid_2" };
+    } else {
+        sections = { "trueparentpid_1", "trueparentpid_2" };
+    }
 
-    // color palette for up to 5 slices
-    static const Color_t sliceColors[5] = {
-        kRed, kBlue, kGreen+2, kMagenta, kCyan
+    // color palette: [0]=gray for non‑baryon, then colors for baryons
+    static const Color_t sliceColors[6] = {
+        kGray, kRed, kBlue, kGreen+2, kMagenta, kCyan
     };
 
-    // --- per‐section pies ---
+    // pie title
+    auto pairName = cfg.getPionPair();
+    auto title    = Constants::pionPairLatex().at(pairName);
+
+    // unified lookup
+    auto const& pmap = Constants::particlePalette();
+    int totalEntries = root["total_entries"].as<int>();
     for (auto const& sec : sections) {
         if (!root[sec]) continue;
 
-        // collect counts
-        std::map<int,int> sectionCounts;
+        // 1) read all counts
+        std::map<int,int> counts;
         for (auto const& kv : root[sec]) {
-            int pid   = std::stoi(kv.first.as<std::string>());
-            int cnt   = kv.second.as<int>();
-            sectionCounts[pid] = cnt;
-            globalCounts[pid] += cnt;
+            int pid = std::stoi(kv.first.as<std::string>());
+            counts[pid] = kv.second.as<int>();
         }
-        if (sectionCounts.empty()) continue;
 
-        // move into vector and sort descending
-        std::vector<std::pair<int,int>> vec(sectionCounts.begin(), sectionCounts.end());
+        // 2) separate non‑baryons vs baryons
+        int nonBaryonSum = 0;
+        std::map<int,int> baryonCounts;
+        for (auto const& pr : counts) {
+            int pid = pr.first, cnt = pr.second;
+            auto it = pmap.find(pid);
+            bool isBaryon = (it != pmap.end()) && it->second.isBaryon;
+            if (isBaryon) {
+                baryonCounts[pid] = cnt;
+            } else {
+                nonBaryonSum += cnt;
+            }
+        }
+
+        // 3) pick top‑5 baryons by count
+        std::vector<std::pair<int,int>> vec(baryonCounts.begin(), baryonCounts.end());
         std::sort(vec.begin(), vec.end(),
-            [](auto &a, auto &b){ return a.second > b.second; });
+                  [](auto &a, auto &b){ return a.second > b.second; });
         if (vec.size() > 5) vec.resize(5);
 
-        // build vals/labels
+        // 4) build values & labels, starting with non‑baryon slice
         std::vector<double> vals;
         std::vector<std::string> labels;
+
+        vals.push_back(nonBaryonSum);
+        labels.push_back("Non-baryon");
+
+        // then baryon slices with percentages
         for (auto &pr : vec) {
-            labels.push_back(std::to_string(pr.first));
-            vals.push_back(pr.second);
+            int pid = pr.first;
+            int cnt = pr.second;
+            vals.push_back(cnt);
+
+            // pct = cnt/totalEntries*100
+            double pct = 100.0 * cnt / totalEntries;
+            std::ostringstream oss;
+            oss << std::fixed << std::setprecision(3) << pct;
+
+            auto it = pmap.find(pid);
+            if (it != pmap.end()) {
+                labels.push_back(it->second.texName + " (" + oss.str() + "%)");
+            } else {
+                labels.push_back(std::to_string(pid) + " (" + oss.str() + "%)");
+            }
         }
 
-        // draw
-        TCanvas* c = new TCanvas(("c_"+sec).c_str(), sec.c_str(), 800,600);
+        // 5) draw pie
+        std::string cName = "c_baryon_" + sec;
+        TCanvas* c = new TCanvas(cName.c_str(), "", 800,600);
         gKeepAlive.push_back(c);
 
-        TPie* pie = new TPie(("pie_"+sec).c_str(), sec.c_str(), vals.size());
+        TPie* pie = new TPie(("pie_"+sec).c_str(), "", vals.size());
         gKeepAlive.push_back(pie);
 
         for (size_t i = 0; i < vals.size(); ++i) {
-            pie->SetEntryVal(i, vals[i]);
-            pie->SetEntryLabel(i, labels[i].c_str());
-            pie->SetEntryFillColor(i, sliceColors[i]);  // distinct color
+            pie->SetEntryVal(i,           vals[i]);
+            pie->SetEntryLabel(i,         labels[i].c_str());
+            pie->SetEntryFillColor(i,     sliceColors[i]);
         }
         pie->SetRadius(0.35);
+        pie->SetLabelFormat("");
         pie->Draw("nol");
+        TLegend *pieleg = pie->MakeLegend();
+        pieleg->SetY1(.66);
+        pieleg->SetY2(.95);
+        pieleg->SetX1(.7);
+        pieleg->SetX2(.95);
 
-        std::string base = (dir / ("baryonContamination_"+sec)).string();
-        c->SaveAs((base+".png").c_str());
-        c->SaveAs((base+".pdf").c_str());
-    }
-
-    // --- global pie (top 5 overall) ---
-    if (!globalCounts.empty()) {
-        std::vector<std::pair<int,int>> gvec(globalCounts.begin(), globalCounts.end());
-        std::sort(gvec.begin(), gvec.end(),
-            [](auto &a, auto &b){ return a.second > b.second; });
-        if (gvec.size() > 5) gvec.resize(5);
-
-        std::vector<double> vals;
-        std::vector<std::string> labels;
-        for (auto &pr : gvec) {
-            labels.push_back(std::to_string(pr.first));
-            vals.push_back(pr.second);
-        }
-
-        TCanvas* c = new TCanvas("c_baryon_global","baryonContamination (top 5)",800,600);
-        gKeepAlive.push_back(c);
-
-        TPie* pie = new TPie("pie_baryon_global","All sources (top 5)", vals.size());
-        gKeepAlive.push_back(pie);
-
-        for (size_t i = 0; i < vals.size(); ++i) {
-            pie->SetEntryVal(i, vals[i]);
-            pie->SetEntryLabel(i, labels[i].c_str());
-            pie->SetEntryFillColor(i, sliceColors[i]);
-        }
-        pie->SetRadius(0.35);
-        pie->Draw("nol");
-
-        std::string base = (dir / "baryonContamination_all").string();
-        c->SaveAs((base+".png").c_str());
-        c->SaveAs((base+".pdf").c_str());
+        // 6) Draw the header
+        //    Determine which pion to show (first or second)
+        std::string singleLatex = (sec.back()=='1')
+            ? Constants::firstHadronLatex(pairName)
+            : Constants::secondHadronLatex(pairName);
+        std::string header = title + " dihadrons: Parent PID of " + singleLatex;
+        TLatex latex;
+        latex.SetTextFont(42);
+        latex.SetTextSize(0.05);    // larger text
+        latex.SetTextAlign(13);     // left + top
+        latex.DrawLatexNDC(0.01, 0.98, header.c_str());
+        
+        // 7) save
+        std::string base = (dir / ("baryon_"+sec)).string();
+        c->SaveAs((base + ".png").c_str());
+        c->SaveAs((base + ".pdf").c_str());
     }
 }
