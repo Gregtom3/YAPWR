@@ -22,20 +22,21 @@ class AsymmetrySidebandRunner < ModuleRunner
     pair.include?('pi0')
   end
 
-  # We override the whole per-leaf flow because we run N commands (one per bkg window)
   def process_leaf(ctx)
-    pair        = File.basename(File.dirname(ctx[:leaf_dir]))
-    filtered    = File.join(ctx[:leaf_dir], File.basename(ctx[:orig_tfile]))
+    tag      = ctx[:tag]
+    pair     = File.basename(File.dirname(ctx[:leaf_dir]))
+    filtered = File.join(ctx[:leaf_dir], File.basename(ctx[:orig_tfile]))
     return unless File.exist?(filtered)
 
-    cmds = BACKGROUND_REGIONS.map do |bkg|
+    BACKGROUND_REGIONS.each do |bkg|
       sanitized = sanitize(bkg)
-      outdir    = File.join(ctx[:leaf_dir], "module-out___asymmetry_sideband_#{sanitized}")
+      outdir    = File.join(ctx[:leaf_dir], "module-out___#{module_key}_#{sanitized}")
       FileUtils.mkdir_p(outdir)
-      root_line(filtered, ctx[:tree_name], pair, outdir, SIGNAL_REGION, bkg)
-    end
 
-    run_multi(ctx[:tag], File.dirname(ctx[:info_path]), cmds)
+      cmd     = root_line(filtered, ctx[:tree_name], pair, outdir, SIGNAL_REGION, bkg)
+      job_tag = "#{tag}_#{sanitized}"
+      run_job(job_tag, outdir, cmd)
+    end
   end
 
   def slurm_job_name(tag)
