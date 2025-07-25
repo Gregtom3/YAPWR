@@ -4,7 +4,7 @@ plt.style.use('science')
 import matplotlib as mpl
 from matplotlib.patches import Rectangle
 
-CAPSIZE = 2
+CAPSIZE = 1
 
 SYS_COLOR_MAP = {
     # detector / reconstruction
@@ -50,6 +50,21 @@ DEFAULT_COLORS = {
     "piminus_piminus": "red",
 }
 
+PAIR_LABEL = {
+    "piplus_pi0": "$\pi^{+}\pi^{0}$",
+    "piplus_piplus": "$\pi^{+}\pi^{+}$",
+    "piplus_piminus": "$\pi^{+}\pi^{-}$",
+    "piminus_pi0": "$\pi^{-}\pi^{0}$",
+    "piminus_piminus": "$\pi^{-}\pi^{-}$"
+}
+
+PAIR_MARKER = {
+    "piplus_pi0": "s",
+    "piplus_piplus": "^",
+    "piplus_piminus": "o",
+    "piminus_pi0": "p",
+    "piminus_piminus": "v"
+}
 
 def fetchAx(yamlData,
             series_specs,
@@ -80,7 +95,7 @@ def fetchAx(yamlData,
     # precompute half‐width for sys‐band if needed
     if show_sys_band:
         dpi     = fig.dpi
-        cap_pts = CAPSIZE
+        cap_pts = 1.5*CAPSIZE
         cap_pix = cap_pts * dpi / 72.0
         inv     = ax.transData.inverted()
         origin  = inv.transform((0, 0))
@@ -116,14 +131,14 @@ def fetchAx(yamlData,
         sys_vals = np.array(sys_vals)[order]
 
         # formatting
-        mstyle = spec.get('markerstyle', 'o')
+        mstyle = spec.get('markerstyle', PAIR_MARKER[pair])
         msize  = spec.get('markersize', None)
         mcolor = spec.get('markercolor',
                           DEFAULT_COLORS.get(pair, 'black'))
         lcolor = spec.get('linecolor',
                           DEFAULT_COLORS.get(pair, mcolor))
-        label  = spec.get('label', pair)
-
+        label  = spec.get('label', PAIR_LABEL[pair])
+        
         eb_kwargs = dict(
             x = x_vals,
             y = A_vals,
@@ -179,43 +194,17 @@ def fetchAx(yamlData,
 
     ax.legend()
     return ax
-    
-def plotSysFig(yamlData,
-            pair, twist, L, M,
-            bin_var='Mh',
-            ax=None,
-            xlim=None, ylim=None,
-            grid=False,
-            show_lm=True,
-            show_pw_label=True,
-            show_sys_band=False,
-            bar_alpha=0.85):
-    """
-    Plot A ± total_error vs. any bin variable for the given pionPair, twist, L, M.
 
-    Parameters
-    ----------
-    yamlData : dict
-        Parsed YAML, with top‐level key 'records'.
-    pair : str
-        e.g. 'piminus_pi0'
-    twist, L, M : int
-        As in your YAML.
-    bin_var : str
-        The record key to use on the x‐axis (e.g. 'Mh', 'x', 'Q2').
-    ax : matplotlib.axes.Axes, optional
-        Axes to draw into; if None, a new figure is created.
-    xlim, ylim : tuple(float,float), optional
-        Axis limits.
-    grid : bool or {'x','y',…}
-        Passed to `ax.grid(...)`.
-    show_lm : bool
-        Toggle |L,M> label in top‐left.
-    show_pw_label : bool
-        Toggle partial‐wave label in top‐right.
-    show_sys_band : bool
-        If True, draw faint rectangles showing systematic error extents.
-    """
+def plotSysFig(yamlData,
+               pair, twist, L, M,
+               bin_var='Mh',
+               ax=None,
+               xlim=None, ylim=None,
+               grid=False,
+               show_lm=True,
+               show_pw_label=True,
+               show_sys_band=False,
+               bar_alpha=0.85):
 
     TOP_XAXIS_FONT_SIZE = 18
     TOP_YAXIS_FONT_SIZE = 18
@@ -224,153 +213,114 @@ def plotSysFig(yamlData,
     LM_FONT_SIZE = 15
     DIFF_FONT_SIZE = 15
     
-    recs = yamlData.get('records', [])
-    x_vals, A_vals, err_vals, sys_vals = [], [], [], []
-    sys_by_src = {}
-    # collect x, A, stat+sys total, and sys-only errors
-    for rec in recs:
-        if (rec.get('pionPair') == pair
-            and rec.get('twist')     == twist
-            and rec.get('L')         == L
-            and rec.get('M')         == M):
-            x = rec.get(bin_var)
-            if x is None:
-                raise KeyError(f"Record missing bin variable '{bin_var}'")
-            x_vals.append(x)
-            A_vals.append(rec['A'])
-            err_vals.append(np.hypot(rec['sStat'], rec['sSys']))
-            sys_vals.append(rec['sSys'])
-
-            # peel systematic dict → absolute errors (2nd element of each list)
-            def accumulate(src, val):
-                sys_by_src.setdefault(src, []).append(val)
-
-            for src, item in rec['systematics'].items():
-                if isinstance(item, list):                 # simple source
-                    accumulate(src, float(item[1]))
-                elif isinstance(item, dict):               # nested (e.g. normalization)
-                    for subsrc, subitem in item.items():
-                        accumulate(subsrc, float(subitem[1]))
-                else:
-                    raise TypeError(f"Unexpected format for '{src}'")
-                    
-    if not x_vals:
-        raise ValueError(f"No records for {pair}, twist={twist}, L={L}, M={M}")
-
-    # sort by the x‐variable
-    order = np.argsort(x_vals)
-    x_vals   = np.array(x_vals)[order]
-    A_vals   = np.array(A_vals)[order]
-    err_vals = np.array(err_vals)[order]
-    sys_vals = np.array(sys_vals)[order]
+    def _collect_sys_arrays(recs, pair, twist, L, M, bin_var):
+        x_vals, sys_vals = [], []
+        sys_by_src = {}
     
-    # also sort every sys‑source list
-    for src in sys_by_src:
-        sys_by_src[src] = np.asarray(sys_by_src[src])[order]
+        for rec in recs:
+            if (rec.get('pionPair') == pair
+                and rec.get('twist') == twist
+                and rec.get('L')     == L
+                and rec.get('M')     == M):
+                x = rec.get(bin_var)
+                if x is None:
+                    raise KeyError("Record missing bin variable '{}'".format(bin_var))
+                x_vals.append(x)
+                sys_vals.append(float(rec['sSys']))
+    
+                # flatten "systematics" -> abs errors
+                for src, item in rec['systematics'].items():
+                    if isinstance(item, list):
+                        # [rel, abs]
+                        sys_by_src.setdefault(src, []).append(float(item[1]))
+                    elif isinstance(item, dict):
+                        for subsrc, subitem in item.items():
+                            sys_by_src.setdefault(subsrc, []).append(float(subitem[1]))
+                    else:
+                        raise TypeError("Unexpected format for '{}'".format(src))
+    
+        if not x_vals:
+            raise ValueError("No records for {}, twist={}, L={}, M={}".format(pair, twist, L, M))
+    
+        order = np.argsort(x_vals)
+        x_vals   = np.asarray(x_vals)[order]
+        sys_vals = np.asarray(sys_vals)[order]
+        for src in sys_by_src:
+            sys_by_src[src] = np.asarray(sys_by_src[src])[order]
+    
+        return x_vals, sys_vals, sys_by_src
+    
+    """
+    One pair, two panels: top = A +- total error, bottom = stacked sys breakdown.
+    Uses fetchAx() to draw the top panel to save code.
+    """
 
+    # records list (no more 'records' wrapper)
+    recs = yamlData
+
+    # make figure/axes (top + bottom)
     fig, (ax_top, ax_bot) = plt.subplots(
         2, 1,
-        figsize=(4,5),dpi=200,
-        gridspec_kw=dict(height_ratios=[3, 2]),
-        sharex=False
-    )
-    ax = ax_top                # proceed with top as "current"
-
-    # error bars (stat+sys)
-    ax.errorbar(
-        x_vals,
-        A_vals,
-        yerr=err_vals,
-        fmt='o',
-        color='k',
-        capsize=CAPSIZE
+        figsize=(4, 5),
+        dpi=200,
+        gridspec_kw=dict(height_ratios=[3, 2])
     )
 
-    # optional systematic error band matching cap width
-    if show_sys_band:
-        # compute half-width in data coords matching capsize in points
-        fig = ax.figure
-        dpi = fig.dpi
-        cap_pts = 1.5*CAPSIZE
-        cap_pix = cap_pts * dpi / 72.0
-        inv = ax.transData.inverted()
-        # use display offsets at origin
-        origin_data = inv.transform((0, 0))
-        right_data = inv.transform((cap_pix, 0))
-        half_w = right_data[0] - origin_data[0]
-        # draw rectangle per point
-        for x, y, sys in zip(x_vals, A_vals, sys_vals):
-            rect = Rectangle(
-                (x - half_w, y - sys),
-                2 * half_w,
-                2 * sys,
-                facecolor='gray',
-                alpha=0.5,
-                edgecolor="black",
-                hatch="//",
-            )
-            ax.add_patch(rect)
+    # ---------------- top panel via fetchAx ----------------
+    spec = {
+        'pair'        : pair,
+        'markerstyle' : 'o',
+        'markersize'  : 3,
+        # leave colors to your defaults
+    }
+    fetchAx(recs,
+            [spec],
+            twist, L, M,
+            bin_var=bin_var,
+            ax=ax_top,
+            xlim=xlim, ylim=ylim,
+            grid=grid,
+            show_lm=show_lm,
+            show_pw_label=show_pw_label,
+            show_sys_band=show_sys_band)
 
-    # labels
-    xlabel = AXIS_LABELS.get(bin_var, bin_var)
-    ax.set_xlabel(xlabel, fontsize=TOP_XAXIS_FONT_SIZE)
-    ax.set_ylabel(
-        f"$A_{{\\mathrm{{LU}}}}^{{|{L},{M}\\rangle}}$",
-        fontsize=TOP_YAXIS_FONT_SIZE
-    )
+    # ensure horizontal zero line (fetchAx already does it, but harmless)
+    ax_top.axhline(0, linestyle='--', color='gray', alpha=0.5)
 
-    # optional corner text
-    if show_lm:
-        ax.text(0.05, 0.95, f"$|{L},{M}\\rangle$",
-                transform=ax.transAxes, va='top', ha='left',fontsize=LM_FONT_SIZE)
+    # ---------------- bottom panel: stacked sys bars ----------------
+    x_vals, sys_vals, sys_by_src = _collect_sys_arrays(recs, pair, twist, L, M, bin_var)
 
-    ax.axhline(0, linestyle='--', color='gray', alpha=0.5)
-
-    if show_pw_label:
-        pw = pw_label_dict.get((twist, L, M), '')
-        if pw:
-            ax.text(0.95, 0.95, pw,
-                    transform=ax.transAxes, va='top', ha='right',fontsize=DIFF_FONT_SIZE)
-
-    # grid and limits
-    ax.grid(grid)
-    if xlim is not None:
-        ax.set_xlim(xlim)
-    if ylim is not None:
-        ax.set_ylim(ylim)
-
-    # ────────────────────── draw breakdown panel ────────────────────
-    # bar locations
     bar_x = np.arange(len(x_vals))
-    # get a reproducible color cycle
-    prop_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
-    colors = {src: SYS_COLOR_MAP.get(src, DEFAULT_SYS_COLOR)
-              for src in sys_by_src}
-
     cum = np.zeros_like(x_vals, dtype=float)
+
+    # deterministic color choice
+    prop_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    colors = {}
+    for i, src in enumerate(sys_by_src.keys()):
+        colors[src] = SYS_COLOR_MAP.get(src, DEFAULT_SYS_COLOR if i >= len(prop_cycle) else prop_cycle[i])
+
     for src, vals in sys_by_src.items():
         ax_bot.bar(bar_x, vals, bottom=cum, width=0.8,
                    label=src, color=colors[src], alpha=bar_alpha)
         cum += vals
 
-    # x‑tick labels → bin centres
-    ax_bot.set_xticks(bar_x)
-    ax_bot_xlabel = xlabel
-    if '(' in xlabel: # strip units
-        ax_bot_xlabel = ax_bot_xlabel.split('(')[0]
-        if "$" in ax_bot_xlabel:
-            ax_bot_xlabel+="$"
-    ax_bot.set_xticklabels([f"{ax_bot_xlabel}={x:.3g}" for x in x_vals], rotation=45,
-                           ha='right',fontsize=BOT_XAXIS_FONT_SIZE)
-    ax_bot.set_ylabel("$\Delta$A", fontsize=BOT_YAXIS_FONT_SIZE)
-    ax_bot.set_ylim(bottom=0)
+    xlabel = AXIS_LABELS.get(bin_var, bin_var)
+    ax_bot.set_ylabel(r'$\Delta A$', fontsize=BOT_YAXIS_FONT_SIZE)
+    ax_bot.set_ylim(0, ax_bot.get_ylim()[1]*2)
     ax_bot.grid(axis='y', linestyle=':', alpha=0.4)
+
+    # nice tick labels
+    ax_bot.set_xticks(bar_x)
+    base_label = xlabel.split('(')[0] if '(' in xlabel else xlabel
+    if '$' in base_label:
+        base_label += '$'
+    ax_bot.set_xticklabels([f"{base_label}={x:.3g}" for x in x_vals],
+                           rotation=45, ha='right', fontsize=BOT_XAXIS_FONT_SIZE)
+
     ax_bot.legend(ncol=2, fontsize=6, frameon=False)
-    ax_bot.set_ylim(0,ax_bot.get_ylim()[1]*2)
+
     fig.tight_layout()
-    plt.show()
-
-
+    return fig, (ax_top, ax_bot)
 
 
 def plot_twist2_grid(yamlData,
