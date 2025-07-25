@@ -1,117 +1,83 @@
-#!/usr/bin/env ruby
-require 'yaml'
+require_relative 'module_runner'
 require 'fileutils'
-require 'optparse'
 
-options = { slurm: false, deps: nil }
+class AsymmetrySidebandRunner < ModuleRunner
+  SIGNAL_REGION = 'M2>0.106&&M2<0.166'.freeze
+  BACKGROUND_REGIONS = [
+    'M2>0.2&&M2<0.45',
+    'M2>0.2&&M2<0.4',
+    'M2>0.2&&M2<0.35',
+    'M2>0.2&&M2<0.3',
+    '(M2>0&&M2<0.08)||(M2>0.2&&M2<0.4)'
+  ].freeze
 
-OptionParser.new do |opts|
-  opts.banner = "Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME [CONFIG...]"
-
-  opts.on('--slurm', 'Submit via sbatch') do
-    options[:slurm] = true
+  def module_key
+    'asymmetry_sideband'
   end
 
-  # Fix: accept the dependency string into a block variable `d`
-  opts.on('--dependency D', 'SBATCH --dependency string (e.g. afterok:1234)') do |d|
-    options[:deps] = d
+  # Only real data pi0 pairs
+  def keep_leaf?(tag, info_path)
+    return false if tag.start_with?('MC_')
+    pair = File.basename(File.dirname(File.dirname(info_path))) # config_dir/pair/leaf/tree_info.yaml
+    pair.include?('pi0')
   end
 
-  opts.on('-h', '--help', 'Show this help') do
-    puts opts
-    exit
-  end
-end.order!
+  def process_leaf(ctx)
+    tag      = ctx[:tag]
+    pair     = File.basename(File.dirname(ctx[:leaf_dir]))
+    filtered = File.join(ctx[:leaf_dir], File.basename(ctx[:orig_tfile]))
+    return unless File.exist?(filtered)
 
-project_name = ARGV.shift or abort "ERROR: PROJECT_NAME missing\n#{opts}"
-user_configs = ARGV.map { |c| "config_#{File.basename(c, File.extname(c))}" }
-out_root     = File.join("out", project_name)
-abort "ERROR: out dir not found: #{out_root}" unless Dir.exist?(out_root)
+    BACKGROUND_REGIONS.each do |bkg|
+      sanitized = sanitize(bkg)
+      outdir    = File.join(ctx[:leaf_dir], "module-out___#{module_key}_#{sanitized}")
+      FileUtils.mkdir_p(outdir)
 
-# Default signal region:
-signal_region = "M2>0.106&&M2<0.166"
-
-# Background‐region variants to loop over:
-background_regions = [
-  "M2>0.2&&M2<0.45",
-  "M2>0.2&&M2<0.4",
-  "M2>0.2&&M2<0.35",
-  "M2>0.2&&M2<0.3",
-  "(M2>0&&M2<0.08)||(M2>0.2&&M2<0.4)"
-]
-
-job_ids = []
-
-Dir.glob(File.join(out_root, "config_*")).sort.each do |config_dir|
-  Dir.glob(File.join(config_dir, "**", "tree_info.yaml")).sort.each do |info_path|
-    
-    cfg_name = File.basename(config_dir)
-    next if user_configs.any? && user_configs.none? { |c| cfg_name.include?(c) }
-    info       = YAML.load_file(info_path)
-    orig_tfile = info.fetch("tfile")
-    ttree      = info.fetch("ttree")
-
-    leaf = File.dirname(info_path)
-    pair = File.basename(File.dirname(leaf))
-    tag  = File.basename(leaf)
-    # only run on real-data π⁰ combinations
-    next unless File.exist?( File.join(leaf, File.basename(orig_tfile)) )
-    next unless pair.include?("pi0")
-    next if tag.start_with?("MC_")
-    # collect each root invocation
-    cmds = background_regions.map do |bkg|
-      sanitized = bkg.
-        gsub(/\s+/, '').
-        gsub(/[^0-9A-Za-z.]/, '_').
-        gsub(/_+/, '_').
-        gsub(/^_|_$/, '')
-
-      mod_out = File.join(leaf, "module-out___asymmetry_sideband_#{sanitized}")
-      FileUtils.mkdir_p(mod_out)
-
-      # build the ROOT command
-      %Q{root -l -b -q 'src/modules/asymmetry.C("#{File.join(leaf, File.basename(orig_tfile))}","#{ttree}","#{pair}","#{mod_out}","#{signal_region}","#{bkg}")'}
+      cmd     = root_line(filtered, ctx[:tree_name], pair, outdir, SIGNAL_REGION, bkg)
+      job_tag = "#{tag}_#{sanitized}"
+      run_job(job_tag, outdir, cmd)
     end
+  end
 
+  def slurm_job_name(tag)
+    "asym_sb_#{tag}"
+  end
+
+  def slurm_directives
+    { time: '24:00:00', mem_per_cpu: '4000', cpus: 1 }
+  end
+
+  private
+
+  def root_line(filtered, ttree, pair, outdir, sig, bkg)
+    %Q{root -l -b -q 'src/modules/asymmetry.C("#{filtered}","#{ttree}","#{pair}","#{outdir}","#{sig}","#{bkg}")'}
+  end
+
+  def sanitize(expr)
+    expr.gsub(/\s+/, '')
+        .gsub(/[^0-9A-Za-z.]/, '_')
+        .gsub(/_+/, '_')
+        .gsub(/^_|_$/, '')
+  end
+
+  # Same helper pattern we used in FilterTreeRunner
+  def run_multi(tag, sbatch_dir, cmds)
     if options[:slurm]
-      # one sbatch script per <pair> running all background regions
-      script = <<~SL
-        #!/bin/bash
-        #SBATCH --job-name=asym_sb_#{pair}
-        #SBATCH --output=#{config_dir}/asym_#{pair}.%j.out
-        #SBATCH --error=#{config_dir}/asym_#{pair}.%j.err
-        #SBATCH --time=24:00:00
-        #SBATCH --mem-per-cpu=4000
-        #SBATCH --cpus-per-task=1
-        #{"#SBATCH --dependency=#{options[:deps]}" if options[:deps]}
-
-        cd #{Dir.pwd}
-
-        #{cmds.join("\n\n        ")}
-      SL
-
-      sbatch_file = File.join(config_dir, "run_asym_#{pair}.slurm")
-      File.write(sbatch_file, script)
-      FileUtils.chmod('+x', sbatch_file)
-
-      out = `sbatch #{sbatch_file}`
+      script = write_sbatch_script(tag, sbatch_dir, cmds.join("\n\n"))
+      out = `sbatch #{script}`
       if out =~ /Submitted batch job (\d+)/
-        job_ids << $1
-        puts "[SLURM_JOBS] #{job_ids.join(',')}"
+        @job_ids << $1
+        puts "[SLURM_JOBS] #{@job_ids.join(',')}"
       else
-        warn "[module___asymmetry_sideband] sbatch failed: #{out}"
+        warn "[#{module_key}] sbatch failed for #{tag}: #{out.strip}"
       end
-
     else
-      # direct, sequential execution if not using SLURM
       cmds.each do |cmd|
-        puts "[module___asymmetry_sideband] Running: #{cmd}"
-        system(cmd) or warn "[module___asymmetry_sideband] ERROR for #{info_path}"
+        puts "[#{module_key}][#{tag}] RUN: #{cmd}"
+        system(cmd) or warn "[#{module_key}] ERROR on #{tag}"
       end
     end
   end
 end
 
-if options[:slurm] && job_ids.any?
-  puts "[SLURM_JOBS] #{job_ids.join(',')}"
-end
+AsymmetrySidebandRunner.run!

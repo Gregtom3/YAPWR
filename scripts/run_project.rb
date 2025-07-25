@@ -239,8 +239,10 @@ modules.each do |mod|
   case mod
   when 'filterTree'
       args = ['ruby','./scripts/modules/module___filterTree.rb', project_name]
-      args << "--maxEntries=#{options[:maxEntries].to_s}" if options[:maxEntries]
+      args += ["--maxEntries","#{options[:maxEntries].to_i}"] if options[:maxEntries]
       args += config_files if config_files.any?
+
+
       invoke('filterTree', *args)
 
   when 'purityBinning'

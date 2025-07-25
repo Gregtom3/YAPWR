@@ -5,7 +5,7 @@
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 
-const std::vector<std::string>& keepBranches = {"x",     "Q2",     "y",  "hel", "eps", "Mh", "M2", "Pol",
+const std::vector<std::string>& keepBranches = {"x",     "Q2",     "y",  "hel", "eps", "Mh", "M2",   "Pol",
                                                 "phi_h", "phi_R1", "th", "z",   "xF",  "Mx", "pTtot"};
 
 void filterTree(const char* inputPath, const char* treeName, const char* configPath, const char* pairName, const char* outputDir,

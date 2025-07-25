@@ -1,110 +1,40 @@
-#!/usr/bin/env ruby
-# coding: utf-8
-# module___kinematicBins.rb   – run kinematicBins.C on every
-#                                filtered tree in out/<PROJECT>,
-#                                with optional Slurm submission
-
-require 'yaml'
+require_relative 'module_runner'
 require 'fileutils'
-require 'optparse'
 
-# ------------------------------------------------------------------
-#  CLI parsing
-# ------------------------------------------------------------------
-options = { slurm: false, deps: nil }
-OptionParser.new do |opts|
-  opts.banner = "Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME [CONFIG...]"
-  opts.on('--slurm', 'Submit each job via sbatch instead of running locally') do
-    options[:slurm] = true
+class KinematicBinsRunner < ModuleRunner
+  def module_key
+    'kinematicBins'
   end
-  opts.on('--dependency D', 'SBATCH --dependency string (e.g. afterok:1234)') do |dep|
-    options[:deps] = dep
+
+  # run on anything that actually has a filtered file
+  def keep_leaf?(_tag, info_path)
+    info   = YAML.load_file(info_path)
+    leaf   = File.dirname(info_path)
+    filtered = File.join(leaf, File.basename(info['tfile']))
+    File.exist?(filtered)
   end
-  opts.on('-h', '--help', 'Show this help message') do
-    puts opts
-    exit
-  end
-end.order!
 
-project = ARGV.shift or abort("Usage: #{$0} [--slurm] [--dependency afterok:IDs] PROJECT_NAME [CONFIG...]")
-out_root = File.join('out', project)
-abort "ERROR: #{out_root} not found" unless Dir.exist?(out_root)
-user_configs = ARGV.map { |c| "config_#{File.basename(c, File.extname(c))}" }
-job_ids = []
-
-Dir.glob(File.join(out_root, 'config_*')).sort.each do |cfg|
-  cfg_name = File.basename(cfg)
-  next if user_configs.any? && user_configs.none? { |c| cfg_name.include?(c) }
-  Dir.glob(File.join(cfg, '**', 'tree_info.yaml')).sort.each do |tinfo|
-    info  = YAML.load_file(tinfo)
-    ttree = info['ttree']
-    src   = info['tfile']
-    leaf  = File.dirname(tinfo)
-    froot = File.join(leaf, File.basename(src))     # filtered file
-    next unless File.exist?(froot)
-
-    pair   = File.basename(File.dirname(leaf))
-    outdir = File.join(leaf, 'module-out___kinematicBins')
+  def process_leaf(ctx)
+    pair      = File.basename(File.dirname(ctx[:leaf_dir]))
+    outdir = File.join(ctx[:leaf_dir], out_subdir)
     FileUtils.mkdir_p(outdir)
 
-    # ascend to config_<NAME>
-    cfg_dir     = leaf
-    cfg_dir     = File.dirname(cfg_dir) until File.basename(cfg_dir).start_with?('config_')
-    cfg_name    = File.basename(cfg_dir).sub(/^config_/, '')
-    primary_yaml = File.join(cfg_dir, "#{cfg_name}.yaml")
-    unless File.exist?(primary_yaml)
-      warn "[kinematicBins][#{pair}] primary YAML not found: #{primary_yaml}"
-      next
-    end
+    cmd = build_root_cmd(ctx.merge(pair: pair,
+                                   outdir: outdir))
+    run_job(ctx[:tag], outdir, cmd)
+  end
 
-    # prepare ROOT macro command
-    macro = %Q{'src/modules/kinematicBins.C(
-      "#{src}",
-      "#{ttree}",
-      "#{pair}",
-      "#{primary_yaml}",
-      "#{outdir}"
-    )'}
-    cmd = ['root', '-l', '-b', '-q', macro].join(' ')
+  def macro_call(ctx)
+    %Q{'src/modules/kinematicBins.C("#{ctx[:orig_tfile]}","#{ctx[:tree_name]}","#{ctx[:pair]}","#{ctx[:primary_yaml]}","#{ctx[:outdir]}")'}
+  end
 
-    if options[:slurm]
-      # create sbatch script
-      sbatch = <<~SLURM
-        #!/bin/bash
-        #SBATCH --job-name=kinBins_#{pair}
-        #SBATCH --output=#{outdir}/kinematicBins_#{pair}.out
-        #SBATCH --error=#{outdir}/kinematicBins_#{pair}.err
-        #SBATCH --time=24:00:00
-        #SBATCH --mem-per-cpu=1000
-        #SBATCH --cpus-per-task=1
-      SLURM
-      sbatch += "#SBATCH --dependency=#{options[:deps]}\n" if options[:deps]
-      sbatch += <<~SLURM
-        cd #{Dir.pwd}
-        #{cmd}
-      SLURM
+  def slurm_job_name(tag)
+    "kinBins_#{tag}"
+  end
 
-      script_file = File.join(outdir, "run_kinematicBins_#{pair}.slurm")
-      File.write(script_file, sbatch)
-      FileUtils.chmod('+x', script_file)
-
-      # submit and capture ID
-      out = `sbatch #{script_file}`
-      if out =~ /Submitted batch job (\d+)\n?/ 
-        job_ids << $1
-        puts "[SLURM_JOBS] #{job_ids.join(',')}"
-      else
-        warn "[kinematicBins] sbatch failed for #{pair}: #{out.strip}"
-      end
-    else
-      # direct local execution
-      puts "[kinematicBins][#{pair}] RUN: #{cmd}"
-      system(cmd) or warn "[kinematicBins] ERROR running for #{pair}" 
-    end
+  def slurm_directives
+    { time: '24:00:00', mem_per_cpu: '1000', cpus: 1 }
   end
 end
 
-# final print of all submitted job IDs
-if options[:slurm] && job_ids.any?
-  puts "[SLURM_JOBS] #{job_ids.join(',')}"
-end
+KinematicBinsRunner.run!

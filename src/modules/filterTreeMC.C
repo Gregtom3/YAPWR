@@ -12,10 +12,10 @@
 // ------------------------------------------------------------------
 static const std::regex var_re(R"(\b(?!true|and|or|not)([A-Za-z_][A-Za-z0-9_]*)\b)");
 
-const std::vector<std::string>& keepBranches = {"x",          "Q2",     "y",     "hel",     "eps",    "Mh",       "M2", "Pol",
-                                                "phi_h",      "phi_R1", "th",    "z",       "xF",     "Mx",       "pTtot",
-                                                "truex",      "trueQ2", "truey", "trueeps", "trueMh", "trueM2",   "truephi_h",
-                                                "truephi_R1", "trueth", "truez", "truexF",  "trueMx", "truepTtot"};
+const std::vector<std::string>& keepBranches = {"x",         "Q2",         "y",      "hel",   "eps",     "Mh",     "M2",
+                                                "Pol",       "phi_h",      "phi_R1", "th",    "z",       "xF",     "Mx",
+                                                "pTtot",     "truex",      "trueQ2", "truey", "trueeps", "trueMh", "trueM2",
+                                                "truephi_h", "truephi_R1", "trueth", "truez", "truexF",  "trueMx", "truepTtot"};
 
 static std::string transformCut(const std::string& in) {
     return std::regex_replace(in, var_re, "true$1");

@@ -1,103 +1,75 @@
-#!/usr/bin/env ruby
-require 'optparse'
-require 'yaml'
+require_relative 'module_runner'
 require 'fileutils'
+require 'yaml'
+require 'optparse'
 
-# module___filterTree.rb
-# Usage: ruby module___filterTree.rb [--slurm] [--dependency afterok:IDs] \
-#                                     [--maxEntries N] PROJECT_NAME [CONFIG...]
-
-options = { slurm: false, deps: nil, max_entries: -1 }
-parser = OptionParser.new do |opts|
-  opts.banner = "Usage: #{File.basename($0)} [--slurm] [--dependency afterok:IDs] [--maxEntries N] PROJECT_NAME [CONFIG...]"
-
-  opts.on('--slurm', 'Submit jobs to Slurm via sbatch') do
-    options[:slurm] = true
+class FilterTreeRunner < ModuleRunner
+  # ----------------------------
+  # Hooks / overrides
+  # ----------------------------
+  def module_key
+    'filterTree'
   end
 
-  opts.on('--dependency D', 'SBATCH --dependency string') do |d|
-    options[:deps] = d
+  # We need both data & MC leaves; nothing to skip.
+  def keep_leaf?(_tag, _info_path) = true
+
+  def needs_filtered_file?
+    false
   end
+  # We don’t have a single YAML result file; macro writes into leaf dir.
+  # So we override the whole per-leaf flow.
+  def process_leaf(ctx)
+    pair     = File.basename(File.dirname(ctx[:leaf_dir]))
+    tag      = ctx[:tag]
+    outdir   = ctx[:leaf_dir]
+    max_ent  = options[:max_entries]
 
-  opts.on('--maxEntries N', Integer, 'Limit max entries (positive only)') do |n|
-    options[:max_entries] = n if n.positive?
-  end
-end
-parser.parse!
-
-project = ARGV.shift or abort(parser.banner)
-user_configs = ARGV.map { |c| "config_#{File.basename(c, File.extname(c))}" }
-
-out_root = File.join('out', project)
-abort "ERROR: output root '#{out_root}' does not exist" unless Dir.exist?(out_root)
-
-entry_arg = options[:max_entries]
-puts "[INFO] maxEntries=#{entry_arg}" if entry_arg > 0
-puts "[INFO] Filtering configs: #{user_configs.join(', ')}" unless user_configs.empty?
-
-job_ids = []
-
-Dir.glob(File.join(out_root, 'config_*')).sort.each do |cfg_dir|
-  cfg_name = File.basename(cfg_dir)
-  next if user_configs.any? && user_configs.none? { |c| cfg_name.include?(c) }
-
-  puts "\n== Processing #{cfg_name} =="
-  yaml_cfg = Dir.glob(File.join(cfg_dir, '*.yaml'))
-                 .reject { |f| f.end_with?('tree_info.yaml') }
-                 .first
-  unless yaml_cfg
-    warn "WARNING: no config .yaml in #{cfg_dir}, skipping"
-    next
-  end
-
-  Dir.glob(File.join(cfg_dir, '**', 'tree_info.yaml')).sort.each do |info|
-    data   = YAML.load_file(info)
-    tfile  = data.fetch('tfile')
-    ttree  = data.fetch('ttree')
-    leaf   = File.dirname(info)
-    tag    = File.basename(leaf)
-    pair   = File.basename(File.dirname(leaf))
-    outdir = leaf
-
+    # Build the (one or two) ROOT commands
     cmds = []
-    cmds << %Q(root -l -q 'src/modules/filterTree.C("#{tfile}","#{ttree}","#{yaml_cfg}","#{pair}","#{outdir}",#{entry_arg})')
-    if tag.start_with?('MC')
-      cmds << %Q(root -l -q 'src/modules/filterTreeMC.C("#{tfile}","#{ttree}","#{yaml_cfg}","#{pair}","#{outdir}",#{entry_arg})')
-    end
+    cmds << root_line('filterTree.C',   ctx[:orig_tfile], ctx[:tree_name], ctx[:primary_yaml], pair, outdir, max_ent)
+    cmds << root_line('filterTreeMC.C', ctx[:orig_tfile], ctx[:tree_name], ctx[:primary_yaml], pair, outdir, max_ent) if tag.start_with?('MC')
 
+    # For Slurm: one script that runs both lines. For local: run sequentially.
+    run_multi(tag, outdir, cmds)
+  end
+
+  def slurm_job_name(tag)
+    "ft_#{tag}"
+  end
+
+  # a bit less RAM than the others
+  def slurm_directives
+    { time: '08:00:00', mem_per_cpu: '2000', cpus: 1 }
+  end
+
+  # ----------------------------
+  # Helpers
+  # ----------------------------
+  private
+
+  def root_line(macro, tfile, ttree, yaml_cfg, pair, outdir, max_entries)
+    %Q{root -l -q 'src/modules/#{macro}("#{tfile}","#{ttree}","#{yaml_cfg}","#{pair}","#{outdir}",#{max_entries})'}
+  end
+
+  # Reuse base run_job machinery but allow multiple commands
+  def run_multi(tag, outdir, cmds)
     if options[:slurm]
-      job_name = "ft_#{pair}_#{tag}"
-      slurm_script = <<~SLURM
-        #!/bin/bash
-        #SBATCH --job-name=#{job_name}
-        #SBATCH --output=#{outdir}/filterTree.out
-        #SBATCH --error=#{outdir}/filterTree.err
-        #SBATCH --time=08:00:00
-        #SBATCH --mem-per-cpu=2000
-        #SBATCH --cpus-per-task=1
-        #{options[:deps] ? "#SBATCH --dependency=#{options[:deps]}" : ''}
-        cd #{Dir.pwd}
-        #{cmds.join("\n")}
-      SLURM
-
-      script_path = File.join(outdir, 'run_filterTree.slurm')
-      File.write(script_path, slurm_script)
-      FileUtils.chmod('+x', script_path)
-
-      output = `sbatch #{script_path}`
-      if output =~ /Submitted batch job (\d+)/
-        job_ids << Regexp.last_match(1)
-        puts "[SLURM_JOBS] #{job_ids.join(',')}"
+      script = write_sbatch_script(tag, outdir, cmds.join("\n"))
+      out = `sbatch #{script}`
+      if out =~ /Submitted batch job (\d+)/
+        @job_ids << $1
+        puts "[SLURM_JOBS] #{@job_ids.join(',')}"
       else
-        warn "ERROR: sbatch failed: #{output}"
+        warn "[#{module_key}] sbatch failed for #{tag}: #{out.strip}"
       end
     else
       cmds.each do |cmd|
-        puts "Running: #{cmd}"
-        system(cmd) or warn "ERROR: filterTree failed for #{info}"
+        puts "[#{module_key}][#{tag}] RUN: #{cmd}"
+        system(cmd) or warn "[#{module_key}] ERROR on #{tag}"
       end
     end
   end
 end
 
-puts "[SLURM_JOBS] #{job_ids.join(',')}" if options[:slurm] && job_ids.any?
+FilterTreeRunner.run!
