@@ -40,6 +40,11 @@ double BaryonContaminationError::getRelativeError(const Result& r,
         int parentpid      = e.pid;
         int count          = e.count;
 
+        // skip proton
+        if (parentpid == 2212){
+            continue;
+        }
+        
         // If parent is a baryon...
         auto it = Constants::baryonPalette().find(parentpid);
         if (it != Constants::baryonPalette().end()) {
