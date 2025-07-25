@@ -16,73 +16,79 @@ static const std::string DEFAULT_PI0_SIGNAL_REGION = "signal_purity_1_1";
 
 static const std::vector<std::string> validPairs = {"piplus_piplus", "piplus_piminus", "piplus_pi0", "piminus_pi0", "piminus_piminus"};
 
-/** One baryon’s display properties */
-struct BaryonInfo {
-    int pid;              ///< PDG ID
-    std::string engName;  ///< human‑readable name
-    std::string texName;  ///< LaTeX‑ready label
-    std::string hexColor; ///< web hex colour
+struct ParticleInfo {
+    int     pid;        ///< PDG ID
+    std::string engName;///< English name
+    std::string texName;///< LaTeX label
+    std::string hexColor;///< Color‑blind‑safe hex
+    bool    isBaryon;   ///< true if baryon or antibaryon
+    bool    isMeson;    ///< true if meson
 };
 
-/** Fast lookup: pid → BaryonInfo */
-static const std::unordered_map<int, BaryonInfo>& baryonPalette() {
-    static const std::unordered_map<int, BaryonInfo> table = {
-        //  pid ,  English name         ,  LaTeX name          , colour
-        {2112, {2112, "Neutron", "n", "#ff7f0e"}},
-        {2214, {2214, "Delta+", "\\Delta^{+}", "#2ca02c"}},
-        {3122, {3122, "Lambda^{0}", "\\Lambda^{0}", "#d62728"}},
-        {2114, {2114, "Delta^{0}", "\\Delta^{0}", "#9467bd"}},
-        {3112, {3112, "Sigma^{-}", "\\Sigma^{-}", "#8c564b"}},
-        {3222, {3222, "Sigma^{+}", "\\Sigma^{+}", "#e377c2"}},
-        {2224, {2224, "Delta^{++}", "\\Delta^{++}", "#7f7f7f"}},
-        {3212, {3212, "Sigma^{0}", "\\Sigma^{0}", "#bcbd22"}},
-        {1114, {1114, "Delta^{-}", "\\Delta^{-}", "#17becf"}},
-        {3224, {3224, "Sigma^{\\!*+}", "\\Sigma^{\\!*+}", "#aec7e8"}},
-        {-2112, {-2112, "Anti‑neutron", "\\bar n", "#ffbb78"}},
-        {3214, {3214, "Sigma^{\\!*0}", "\\Sigma^{\\!*0}", "#98df8a"}},
-        {3114, {3114, "Sigma^{\\!*‑}", "\\Sigma^{\\!*‑}", "#ff9896"}},
-        {-2212, {-2212, "Antiproton", "\\bar p", "#c5b0d5"}},
-        {3322, {3322, "Xi^{0}", "\\Xi^{0}", "#c49c94"}},
-        {-3112, {-3112, "Anti‑Sigma^{-}", "\\bar\\Sigma^{-}", "#f7b6d2"}},
-        {3324, {3324, "Xi^{\\!*0}", "\\Xi^{\\!*0}", "#c7c7c7"}},
-        {3312, {3312, "Xi^{-}", "\\Xi^{-}", "#dbdb8d"}},
-        {-3212, {-3212, "Anti‑Sigma^{0}", "\\bar\\Sigma^{0}", "#9edae5"}},
-        {-3122, {-3122, "Anti‑Lambda^{0}", "\\bar\\Lambda^{0}", "#ffbf00"}},
-        {-3322, {-3322, "Anti‑Xi^{0}", "\\bar\\Xi^{0}", "#ff8000"}},
-        {-2214, {-2214, "Anti‑Delta^{+}", "\\bar\\Delta^{+}", "#ff4000"}},
-        {-1114, {-1114, "Anti‑Delta^{-}", "\\bar\\Delta^{-}", "#800000"}},
-        {3314, {3314, "Xi^{\\!*‑}", "\\Xi^{\\!*‑}", "#808000"}},
-        {-2114, {-2114, "Anti‑Delta^{0}", "\\bar\\Delta^{0}", "#008080"}},
-        {-3222, {-3222, "Anti‑Sigma^{+}", "\\bar\\Sigma^{+}", "#800080"}},
-        {-3114, {-3114, "Anti‑Sigma^{\\!*‑}", "\\bar\\Sigma^{\\!*‑}", "#4b0082"}},
-        {-2224, {-2224, "Anti‑Delta^{++}", "\\bar\\Delta^{++}", "#ff00ff"}},
-        {-3312, {-3312, "Anti‑Xi^{-}", "\\bar\\Xi^{-}", "#00ff00"}}};
-    return table;
+inline const std::unordered_map<int, ParticleInfo>& particlePalette() {
+    static const std::unordered_map<int, ParticleInfo> tbl = {
+        {2112, {2112, "Neutron", "n", "#ff7f0e",true,false}},
+        {2214, {2214, "Delta+", "\\Delta^{+}", "#2ca02c",true,false}},
+        {3122, {3122, "Lambda^{0}", "\\Lambda^{0}", "#d62728",true,false}},
+        {2114, {2114, "Delta^{0}", "\\Delta^{0}", "#9467bd",true,false}},
+        {3112, {3112, "Sigma^{-}", "\\Sigma^{-}", "#8c564b",true,false}},
+        {3222, {3222, "Sigma^{+}", "\\Sigma^{+}", "#e377c2",true,false}},
+        {2224, {2224, "Delta^{++}", "\\Delta^{++}", "#7f7f7f",true,false}},
+        {3212, {3212, "Sigma^{0}", "\\Sigma^{0}", "#bcbd22",true,false}},
+        {1114, {1114, "Delta^{-}", "\\Delta^{-}", "#17becf",true,false}},
+        {3224, {3224, "Sigma^{\\!*+}", "\\Sigma^{\\!*+}", "#aec7e8",true,false}},
+        {-2112, {-2112, "Anti‑neutron", "\\bar n", "#ffbb78",true,false}},
+        {3214, {3214, "Sigma^{\\!*0}", "\\Sigma^{\\!*0}", "#98df8a",true,false}},
+        {3114, {3114, "Sigma^{\\!*‑}", "\\Sigma^{\\!*‑}", "#ff9896",true,false}},
+        {-2212, {-2212, "Antiproton", "\\bar p", "#c5b0d5",true,false}},
+        {3322, {3322, "Xi^{0}", "\\Xi^{0}", "#c49c94",true,false}},
+        {-3112, {-3112, "Anti‑Sigma^{-}", "\\bar\\Sigma^{-}", "#f7b6d2",true,false}},
+        {3324, {3324, "Xi^{\\!*0}", "\\Xi^{\\!*0}", "#c7c7c7",true,false}},
+        {3312, {3312, "Xi^{-}", "\\Xi^{-}", "#dbdb8d",true,false}},
+        {-3212, {-3212, "Anti‑Sigma^{0}", "\\bar\\Sigma^{0}", "#9edae5",true,false}},
+        {-3122, {-3122, "Anti‑Lambda^{0}", "\\bar\\Lambda^{0}", "#ffbf00",true,false}},
+        {-3322, {-3322, "Anti‑Xi^{0}", "\\bar\\Xi^{0}", "#ff8000",true,false}},
+        {-2214, {-2214, "Anti‑Delta^{+}", "\\bar\\Delta^{+}", "#ff4000",true,false}},
+        {-1114, {-1114, "Anti‑Delta^{-}", "\\bar\\Delta^{-}", "#800000",true,false}},
+        {3314, {3314, "Xi^{\\!*‑}", "\\Xi^{\\!*‑}", "#808000",true,false}},
+        {-2114, {-2114, "Anti‑Delta^{0}", "\\bar\\Delta^{0}", "#008080",true,false}},
+        {-3222, {-3222, "Anti‑Sigma^{+}", "\\bar\\Sigma^{+}", "#800080",true,false}},
+        {-3114, {-3114, "Anti‑Sigma^{\\!*‑}", "\\bar\\Sigma^{\\!*‑}", "#4b0082",true,false}},
+        {-2224, {-2224, "Anti‑Delta^{++}", "\\bar\\Delta^{++}", "#ff00ff",true,false}},
+        {-3312, {-3312, "Anti‑Xi^{-}", "\\bar\\Xi^{-}", "#00ff00",true,false}},
+        { 111  , { 111,  "π⁰"          , "$\\pi^{0}$"    , "#E69F00",false,true }}, 
+        { 113  , { 113,  "ρ⁰(770)"     , "$\\rho^{0}$"   , "#56B4E9",false,true }},
+        { 221  , { 221,  "η"            , "$\\eta$"       , "#009E73",false,true }},
+        { 223  , { 223,  "ω(782)"      , "$\\omega$"     , "#D55E00",false,true }},
+        { 310  , { 310,  "K⁰ₛ"         , "$K^{0}_{S}$"   , "#CC79A7",false,true }},
+        { 333  , { 333,  "ϕ(1020)"     , "$\\phi$"       , "#0072B2",false,true }},
+        { 213  , { 213,  "ρ⁺(770)"     , "$\\rho^{+}$"   , "#F0E442",false,true }},
+        {-213 , {-213,  "ρ⁻(770)"     , "$\\rho^{-}$"   , "#0072B2",false,true }},
+        { 323  , { 323,  "K*⁺(892)"    , "$K^{*+}$"      , "#E69F00",false,true }},
+        {-323 , {-323,  "K*⁻(892)"    , "$K^{*-}$"      , "#56B4E9",false,true }},
+        {211, {211, "Pi^{+}", "\\pi^{+}", "#D55E00",false,true}},
+        {-211, {-211, "Pi^{-}", "\\pi^{-}", "#E69F00",false,true}},
+        {321, {321, "K^{+}", "K^{+}", "#8E44AD",false,true}},
+        {-321, {-321, "K^{-}", "K^{-}", "#A569BD",false,true}},
+        {130, {130, "K^{0}_{\\,L}", "K^{0}_{L}", "#FF5733",false,true}},
+        {11, {11, "Electron", "e^{-}", "#0072B2"}},
+        {-11, {-11, "Positron", "e^{+}", "#56B4E9"}},
+        {22, {22, "Photon", "\\gamma", "#009E73"}}
+    };
+    return tbl;
 }
 
-/** Display properties for a non‑baryonic particle */
-struct ParticleInfo {
-    int pid;              ///< PDG ID
-    std::string engName;  ///< English name
-    std::string texName;  ///< LaTeX label
-    std::string hexColor; ///< Color‑blind‑safe hex
-};
 
-/** pid → ParticleInfo lookup */
-inline const std::unordered_map<int, ParticleInfo>& particlePalette() {
-    static const std::unordered_map<int, ParticleInfo> tbl = {// pid ,  English name     ,  LaTeX label  ,  colour
-                                                              {11, {11, "Electron", "e^{-}", "#0072B2"}},
-                                                              {-11, {-11, "Positron", "e^{+}", "#56B4E9"}},
-                                                              {22, {22, "Photon", "\\gamma", "#009E73"}},
-                                                              {211, {211, "Pi^{+}", "\\pi^{+}", "#D55E00"}},
-                                                              {-211, {-211, "Pi^{-}", "\\pi^{-}", "#E69F00"}},
-                                                              {2212, {2212, "Proton", "p", "#CC79A7"}},
-                                                              {-2212, {-2212, "Antiproton", "\\bar p", "#F0E442"}},
-                                                              {2112, {2112, "Neutron", "n", "#000000"}},
-                                                              {321, {321, "K^{+}", "K^{+}", "#8E44AD"}},
-                                                              {-321, {-321, "K^{-}", "K^{-}", "#A569BD"}},
-                                                              {130, {130, "K^{0}_{\\,L}", "K^{0}_{L}", "#FF5733"}}};
-    return tbl;
+/** pion pair → LaTeX‑ready label */
+inline const std::unordered_map<std::string, std::string>& pionPairLatex() {
+    static const std::unordered_map<std::string, std::string> table = {
+        {"piplus_pi0",    "$\\pi^{+}\\,\\pi^{0}$"},
+        {"piminus_pi0",   "$\\pi^{-}\\,\\pi^{0}$"},
+        {"piplus_piplus", "$\\pi^{+}\\,\\pi^{+}$"},
+        {"piplus_piminus","$\\pi^{+}\\,\\pi^{-}$"},
+        {"piminus_piminus","$\\pi^{-}\\,\\pi^{-}$"}
+    };
+    return table;
 }
 
 struct PWTerm {

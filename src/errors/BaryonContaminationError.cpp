@@ -46,10 +46,11 @@ double BaryonContaminationError::getRelativeError(const Result& r,
         }
         
         // If parent is a baryon...
-        auto it = Constants::baryonPalette().find(parentpid);
-        if (it != Constants::baryonPalette().end()) {
+        auto it = Constants::particlePalette().find(parentpid);
+        if (it != Constants::particlePalette().end()) {
             // Add to the total
-            totalBaryonParents+=count;
+            if(it->second.isBaryon)
+                totalBaryonParents+=count;
         }
     }
 
