@@ -16,7 +16,7 @@ public:
     fs::path findBaseDirectory();
 
     /// Discover all <CONFIG_NAME> subdirs under projectDir/pionPair/runPeriod
-    void discoverConfigs();
+    bool discoverConfigs(); // false if no config files found
 
     /// For each config, for each registered module:
     ///   1. construct module‑out path
@@ -28,6 +28,10 @@ public:
     }
     std::map<std::string, Config> getConfigsMap() {
         return configs_map_;
+    }
+
+    std::vector<Config> getConfigsVector() {
+        return configs_;
     }
 
 private:

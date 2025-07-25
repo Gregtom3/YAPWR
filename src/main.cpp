@@ -1,43 +1,70 @@
 #include "AsymmetryHandler.h"
 #include "Logger.h"
 #include "Synthesizer.h"
+
 #include <iostream>
 #include <string>
+#include <vector> 
 
 int main(int argc, char** argv) {
     Logger::setLevel(Logger::Level::Info);
 
-    if (argc != 4) {
-        std::cerr << "Usage: " << argv[0] << " <projectDir> <pionPair> <runPeriod>\n";
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <projectDir>\n";
         return 1;
     }
 
     std::string projectDir = argv[1];
-    std::string pionPair = argv[2];
-    std::string runPeriod = argv[3];
 
-    // run the synthesizer
-    Synthesizer synth(projectDir, pionPair, runPeriod);
-    synth.discoverConfigs();
-    synth.runAll();
+    // All pion pairs except pi0_pi0 (edit this list if you add/remove channels)
+    const std::vector<std::string> pionPairs = {
+        "piplus_piplus",
+        "piplus_piminus",
+        "piplus_pi0",
+        "piminus_piminus",
+        "piminus_pi0"
+    };
 
-    // set up the asymmetry handler
-    AsymmetryHandler asym(synth.getResults(), synth.getConfigsMap());
+    // Both run versions to check
+    const std::vector<std::string> runVersions = {
+        "Fall2018Spring2019_RGA_inbending",
+        "Fall2018_RGA_outbending"
+    };
 
-    // pick the right region name
-    std::string regionName = (pionPair == "piplus_pi0" || pionPair == "piminus_pi0") ? "signal_purity_1_1" : "signal";
+    // Where all YAML will go
+    const std::string outPath = "out/" + projectDir + "/asymmetry_results.yaml";
 
-    // always use "full"
-    std::string regionType = "full";
+    bool append = false;  // first dump truncates; subsequent dumps append
 
-    // loop over pw = 0..12
-    for (int pw = 0; pw <= 11; ++pw) {
-        asym.reportAsymmetry(regionName, pw, regionType);
+    for (const auto& pair : pionPairs) {
+        for (const auto& runVersion : runVersions) {
+            // Build and run the synthesizer
+            Synthesizer synth(projectDir, pair, runVersion);
+            synth.discoverConfigs();
+            if (synth.getConfigsVector().empty()) {  // skip if nothing found
+                LOG_WARN("No configs for pair=" << pair << ", run=" << runVersion << " — skipping.");
+                continue;
+            }
+            synth.runAll();
+
+            // Set up the asymmetry handler
+            AsymmetryHandler asym(synth.getResults(), synth.getConfigsMap());
+
+            // Region logic
+            const bool hasPi0 = (pair.find("pi0") != std::string::npos);
+            std::string regionName  = hasPi0 ? Constants::DEFAULT_PI0_SIGNAL_REGION : "signal";
+            std::string regionType  = hasPi0 ? "signal"             : "full";
+
+            // Loop over pw = 0..11
+            for (int pw = 0; pw <= 11; ++pw) {
+                asym.reportAsymmetry(regionName, pw, regionType);
+            }
+
+            // Dump/append YAML
+            asym.dumpYaml(outPath, append);
+            append = true;
+        }
     }
-
-    // dump everything to YAML
-    std::string outPath = "out/" + projectDir + "/asymmetry_results.yaml";
-    asym.dumpYaml(outPath);
 
     std::cout << "Done!" << std::endl;
     return 0;

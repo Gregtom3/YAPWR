@@ -37,7 +37,7 @@ fs::path Synthesizer::findBaseDirectory() {
     return base;
 }
 
-void Synthesizer::discoverConfigs() {
+bool Synthesizer::discoverConfigs() {
     // Determine base directory containing the config file
     fs::path config_base = findBaseDirectory();
 
@@ -61,15 +61,20 @@ void Synthesizer::discoverConfigs() {
             LOG_WARN("No config YAML for " + entry.path().filename().string() + " (looking for " + yamlPath.string() + ")");
             continue;
         }
-
+        std::cout << (config_base / (prefix+folderName) / pionPair_ / runPeriod_).string() << std::endl;
+        if(!fs::exists(config_base / (prefix+folderName) / pionPair_ / runPeriod_)){
+            continue;
+        }
         configs_.push_back(Config(yamlPath.string(), projectDir_, pionPair_, runPeriod_));
     }
 
     // Ensure we found at least one valid config
     if (configs_.empty()) {
-        throw std::runtime_error("Synthesizer::discoverConfigs(): no valid config directories found under " + config_base.string());
+        LOG_WARN("Synthesizer::discoverConfigs(): no valid config directories found under " + config_base.string());
+        return false;
     }
     LOG_INFO("Found " << configs_.size() << " configs");
+    return true;
 }
 
 void Synthesizer::runAll() {

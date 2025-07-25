@@ -51,7 +51,7 @@ public:
     void reportAsymmetry(const std::string& region, int termIndex, const std::string& binPrefix) const;
 
     void collectSystematics(const std::string& region, int termIndex, const std::string& binPrefix) const;
-    void dumpYaml(const std::string& outPath) const;
+    void dumpYaml(const std::string& outPath, bool append) const;
 
 protected:
     void createSortedConfigNames();

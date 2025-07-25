@@ -194,36 +194,51 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
     }
 }
 
-void AsymmetryHandler::dumpYaml(const std::string& outPath) const {
+void AsymmetryHandler::dumpYaml(const std::string& outPath, bool append /* = false */) const {
     YAML::Emitter out;
-    out << YAML::BeginMap << YAML::Key << "records" << YAML::Value << YAML::BeginSeq;
+    if (append) out << YAML::BeginDoc;
+
+    // ↓↓↓ CHANGED: drop the outer {"records": [...]}; just start a sequence
+    out << YAML::BeginSeq;
 
     for (const auto& r : records_) {
-        out << YAML::BeginMap << YAML::Key << "cfg" << YAML::Value << r.cfgName << YAML::Key << "pionPair" << YAML::Value << r.pionPair
-            << YAML::Key << "runVersion" << YAML::Value << r.runVersion << YAML::Key << "twist" << YAML::Value << r.TWIST << YAML::Key
-            << "L" << YAML::Value << r.L << YAML::Key << "M" << YAML::Value << r.M << YAML::Key << "modulation" << YAML::Value
-            << r.modulationLatex << YAML::Key << "region" << YAML::Value << r.region << YAML::Key << r.binVar << YAML::Value
-            << r.binVal << YAML::Key << "A" << YAML::Value << r.A << YAML::Key << "sStat" << YAML::Value << r.sStat << YAML::Key
-            << "sSys" << YAML::Value << r.sSys << YAML::Key << "systematics" << YAML::Value << YAML::BeginMap << YAML::Key
-            << "binMigration" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rBinMig << r.aBinMig << YAML::EndSeq << YAML::Key
-            << "baryonContamination" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rBary << r.aBary << YAML::EndSeq << YAML::Key
-            << "particleMisID" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rMisID << r.aMisID << YAML::EndSeq << YAML::Key
-            << "sidebandRegion" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rSreg << r.aSreg << YAML::EndSeq << YAML::Key
-            << "purityBinning" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rPbin << r.aPbin << YAML::EndSeq << YAML::Key
-            << "normalization" << YAML::Value << YAML::BeginMap;
+        out << YAML::BeginMap
+            << YAML::Key << "cfg"        << YAML::Value << r.cfgName
+            << YAML::Key << "pionPair"   << YAML::Value << r.pionPair
+            << YAML::Key << "runVersion" << YAML::Value << r.runVersion
+            << YAML::Key << "twist"      << YAML::Value << r.TWIST
+            << YAML::Key << "L"          << YAML::Value << r.L
+            << YAML::Key << "M"          << YAML::Value << r.M
+            << YAML::Key << "modulation" << YAML::Value << r.modulationLatex
+            << YAML::Key << "region"     << YAML::Value << r.region
+            << YAML::Key << r.binVar     << YAML::Value << r.binVal
+            << YAML::Key << "A"          << YAML::Value << r.A
+            << YAML::Key << "sStat"      << YAML::Value << r.sStat
+            << YAML::Key << "sSys"       << YAML::Value << r.sSys
+            << YAML::Key << "systematics" << YAML::Value << YAML::BeginMap
+                << YAML::Key << "binMigration"        << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rBinMig << r.aBinMig << YAML::EndSeq
+                << YAML::Key << "baryonContamination" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rBary  << r.aBary  << YAML::EndSeq
+                << YAML::Key << "particleMisID"       << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rMisID << r.aMisID << YAML::EndSeq
+                << YAML::Key << "sidebandRegion"      << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rSreg  << r.aSreg  << YAML::EndSeq
+                << YAML::Key << "purityBinning"       << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rPbin  << r.aPbin  << YAML::EndSeq
+                << YAML::Key << "normalization"       << YAML::Value << YAML::BeginMap;
         for (const auto& [comp, rel] : r.rNorm) {
             out << YAML::Key << comp << YAML::Value << YAML::Flow << YAML::BeginSeq << rel << r.aNorm.at(comp) << YAML::EndSeq;
         }
-        out << YAML::EndMap  // normalization
-            << YAML::EndMap  // systematics
-            << YAML::EndMap; // record
+        out << YAML::EndMap   // normalization
+            << YAML::EndMap   // systematics
+            << YAML::EndMap;  // this record map
     }
 
-    out << YAML::EndSeq << YAML::EndMap;
+    // ↓↓↓ CHANGED: only close the sequence
+    out << YAML::EndSeq;
 
-    std::ofstream fout(outPath);
-    if (!fout)
+    std::ofstream fout(outPath, append ? std::ios::app : std::ios::trunc);
+    if (!fout) {
         LOG_ERROR("Unable to open " << outPath << " for writing");
-    else
+    } else {
+        if (append) fout << '\n';
         fout << out.c_str();
+    }
 }
+
