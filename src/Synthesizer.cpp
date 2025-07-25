@@ -61,8 +61,8 @@ bool Synthesizer::discoverConfigs() {
             LOG_WARN("No config YAML for " + entry.path().filename().string() + " (looking for " + yamlPath.string() + ")");
             continue;
         }
-        std::cout << (config_base / (prefix+folderName) / pionPair_ / runPeriod_).string() << std::endl;
-        if(!fs::exists(config_base / (prefix+folderName) / pionPair_ / runPeriod_)){
+        std::cout << (config_base / (prefix + folderName) / pionPair_ / runPeriod_).string() << std::endl;
+        if (!fs::exists(config_base / (prefix + folderName) / pionPair_ / runPeriod_)) {
             continue;
         }
         configs_.push_back(Config(yamlPath.string(), projectDir_, pionPair_, runPeriod_));
