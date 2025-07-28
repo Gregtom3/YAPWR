@@ -338,7 +338,7 @@ void BinMigrationError::plotSummary(const std::string& outDir, bool asFraction) 
     H->GetXaxis()->LabelsOption("v");  // vertical x labels
     H->GetXaxis()->SetLabelSize(0.03);
     H->GetYaxis()->SetLabelSize(0.03);
-
+    H->GetXaxis()->SetTitleOffset(2);
     H->Draw("COLZ TEXT");     // color map + numeric text overlay
 
     // ---------- save ----------
