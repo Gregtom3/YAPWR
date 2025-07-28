@@ -242,6 +242,5 @@ TMatrixD BinMigrationError::getMigrationMatrix_RecoRows_TrueCols() const {
         for (int j = 0; j < N; ++j)
             M(j, i) = F_true_reco[i][j];
 
-    M.Print();
     return M;
 }

@@ -7,7 +7,7 @@
 #include <vector>
 
 int main(int argc, char** argv) {
-    Logger::setLevel(Logger::Level::Info);
+    Logger::setLevel(Logger::Level::Error);
 
     if (argc != 2) {
         std::cerr << "Usage: " << argv[0] << " <projectDir>\n";

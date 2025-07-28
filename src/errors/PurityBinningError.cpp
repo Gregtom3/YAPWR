@@ -3,6 +3,8 @@
 #include <numeric>  
 #include <cmath>   
 #include <iomanip>
+#include <regex>
+
 PurityBinningError::PurityBinningError(const Config& cfg, const double asymValue)
   : cfg_(cfg)
   , asymValue_(asymValue)
@@ -13,14 +15,14 @@ double PurityBinningError::getRelativeError(const Result&      r,
                                             const std::string& region,
                                             int                pwTerm)
 {
-    const std::string tag = ".b_" + std::to_string(pwTerm);
-
+    const std::string tag = "b_" + std::to_string(pwTerm);     
+    const std::regex  tag_re("(^|\\.)" + tag + "($|[^0-9])");  // exact b_n
 
     std::vector<double> vals;
     for (const auto& [key, val] : r.scalars) {
         if (key.find(DEFAULT_BKG_REGION) == std::string::npos) continue;
         if (key.find("signal") == std::string::npos) continue;
-        if (key.find(tag)             == std::string::npos) continue;
+        if (!std::regex_search(key, tag_re)) continue;        // exact b_n
         if (key.find("_err")          != std::string::npos) continue;
 
         vals.push_back(val);

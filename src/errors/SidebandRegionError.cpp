@@ -3,6 +3,8 @@
 #include <numeric>  
 #include <cmath>   
 #include <iomanip>
+#include <regex>
+
 SidebandRegionError::SidebandRegionError(const Config& cfg, const double asymValue)
   : cfg_(cfg)
   , asymValue_(asymValue)
@@ -19,16 +21,17 @@ double SidebandRegionError::getRelativeError(const Result&      r,
         return 0.0;
     }
 
-    const std::string tag = ".b_" + std::to_string(pwTerm);
-
+    const std::string tag = "b_" + std::to_string(pwTerm);     
+    const std::regex  tag_re("(^|\\.)" + tag + "($|[^0-9])");  // exact b_n
+        
     std::vector<double> vals;
     for (const auto& [key, val] : r.scalars) {
         if (key.find(region) == std::string::npos) continue; // e.g. "signal"
-        if (key.find(tag)    == std::string::npos) continue; // ".b_n"
+        if (!std::regex_search(key, tag_re)) continue;        // exact b_n
         if (key.find("_err") != std::string::npos) continue; // skip errors
 
         vals.push_back(val);
-        LOG_DEBUG("Sideband match : " << key << " = "
+        LOG_INFO("\t["+cfg_.name+"][b_"+std::to_string(pwTerm)+"] Sideband match : " << key << " = "
                  << std::setprecision(6) << val);
     }
 
@@ -49,8 +52,7 @@ double SidebandRegionError::getRelativeError(const Result&      r,
 
     // relative uncertainty
     const double rel = (asymValue_ != 0.0) ? sigma / std::fabs(asymValue_) : 0.0;
-
-    LOG_DEBUG("SidebandRegionError: mean=" << mean
+    LOG_DEBUG("["+cfg_.name+"][b_"+std::to_string(pwTerm)+"] SidebandRegionError: mean=" << mean
              << "  sigma=" << sigma
              << "  rel=" << rel);
 
