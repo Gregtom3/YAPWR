@@ -99,6 +99,34 @@ static void doGrid(const std::vector<double>& phi_h, const std::vector<double>& 
                 if (p.first >= info.rEdges[j] && p.first < info.rEdges[j + 1])
                     h->Fill(p.second);
             h->Sumw2();
+            // -------------------- adaptive right fit edge (pre‑normalization) ----
+            double xmaxFit = 0.40;
+            const int nbx = h->GetNbinsX();
+            bool anyLow = false, allLow = true;
+            int firstLowBin = -1;
+            
+            for (int b = 1; b <= nbx; ++b) {
+                const double xc = h->GetBinCenter(b);
+                if (xc <= 0.135) continue;
+                const double cnt = h->GetBinContent(b); // IMPORTANT: before scaling
+                if (cnt < 10.0) {
+                    anyLow = true;
+                    if (firstLowBin < 0) firstLowBin = b; // leftmost low‑stat bin
+                } else {
+                    allLow = false;
+                }
+            }
+            
+            // Use the first low‑stat bin center as xmax unless *all* bins are low,
+            // in which case keep the default 0.40. (If there are no low bins, also keep 0.40.)
+            if (anyLow && !allLow) {
+                xmaxFit = h->GetBinCenter(firstLowBin);
+                // guard against pathological cases (ensure a meaningful fit interval)
+                if (xmaxFit < 0.10) xmaxFit = 0.10;
+                if (xmaxFit <= 0.075) xmaxFit = 0.075; // minimum width safeguard
+            }
+            
+            // -------------------- normalize AFTER deciding the edge ---------------
             double area = h->Integral();
             if (area > 0)
                 h->Scale(1.0 / area);
@@ -107,25 +135,57 @@ static void doGrid(const std::vector<double>& phi_h, const std::vector<double>& 
             TF1* fit = new TF1("fit", "gaus(0)+pol4(3)", 0.06, 0.4);
             fit->SetParameters(0.005, 0.15, 0.01);
             fit->SetParLimits(0, 0.001, 1);
-            fit->SetParLimits(1, 0.1, 0.2);
-            fit->SetParLimits(2, 0.001, 0.1);
+            fit->SetParLimits(1, 0.127, 0.14);
+            fit->SetParLimits(2, 0.001, 0.04);
             TFitResultPtr r = h->Fit(fit, "QRN"); // quiet range, no draw
 
             TF1* sig = new TF1("sig", "gaus", 0.06, 0.4);
-            sig->SetParameters(fit->GetParameter(0), fit->GetParameter(1), fit->GetParameter(2));
-
-            // integrals + errors
-            double tot_int = fit->Integral(0.106, 0.166);
-            double tot_err = fit->IntegralError(0.106, 0.166);
-            double sig_int = sig->Integral(0.106, 0.166);
-
-            double sig_err = std::sqrt(std::pow(std::sqrt(2 * M_PI) * sig->GetParameter(2) * sig->GetParError(0), 2) +
-                                       std::pow(sig->GetParameter(0) * std::sqrt(2 * M_PI) * sig->GetParError(2), 2));
-
-            double purity = tot_int > 0 ? sig_int / tot_int : 0;
-            double purity_err = ratioErr(sig_int, sig_err, tot_int, tot_err);
-
-            info.purity[j] = purity;
+            // Helper: compute purity (using integration window clipped to the fit range)
+            auto compute_purity = [&](double& purity, double& purity_err) {
+                // Clip integration window to the fit domain to avoid evaluating outside
+                const double lo = std::max(0.106, fit->GetXmin());
+                const double hi = std::min(0.166, fit->GetXmax());
+                if (hi <= lo) {
+                    purity = 0.0;
+                    purity_err = 0.0;
+                    return;
+                }
+            
+                const double tot_int = fit->Integral(lo, hi);
+                const double tot_err = fit->IntegralError(lo, hi);
+                const double sig_int = sig->Integral(lo, hi);
+            
+                // error propagation for gaussian integral (same as your original)
+                const double A  = sig->GetParameter(0);
+                const double sA = sig->GetParError(0);
+                const double s  = sig->GetParameter(2);
+                const double ss = sig->GetParError(2);
+            
+                const double sig_err = std::sqrt(std::pow(std::sqrt(2 * M_PI) * s * sA, 2) +
+                                                 std::pow(A * std::sqrt(2 * M_PI) * ss, 2));
+            
+                purity     = (tot_int > 0.0) ? (sig_int / tot_int) : 0.0;
+                purity_err = ratioErr(sig_int, sig_err, tot_int, tot_err);
+            };
+            
+            // Fit + up to 5 refits if purity > 1 (keep final attempt)
+            double purity = 0.0, purity_err = 0.0;
+            for (int attempt = 0; attempt < 5; ++attempt) {
+                TFitResultPtr r = h->Fit(fit, "QRN"); // quiet, respect range, no draw
+            
+                // Update signal gaussian with the fitted gaussian params
+                sig->SetParameters(fit->GetParameter(0), fit->GetParameter(1), fit->GetParameter(2));
+            
+                compute_purity(purity, purity_err);
+                if (purity <= 1.0) break;
+            
+                // Optional: nudge starting values slightly toward current fit before refit
+                fit->SetParameters(fit->GetParameter(0), fit->GetParameter(1), fit->GetParameter(2));
+                // Next loop iteration refits; after 5 attempts, we keep the last result.
+            }
+            
+            // Store results
+            info.purity[j]    = purity;
             info.purityErr[j] = purity_err;
 
             // -------------------------------- draw -----------------------------
