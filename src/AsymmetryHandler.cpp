@@ -83,6 +83,13 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         unfoldAsymmetryViaBinMigration_(allBinMig);
     }
 
+    // Fourth, specially plot the binMigrationError
+    const Config& anyCfg = configMap_.at(sortedCfgNames_.front());
+    BinMigrationError tmp_bmErr(anyCfg, configMap_, sortedCfgNames_, asymValue_, allBinMig);
+    fs::path modPath = fs::path("out") / anyCfg.getProjectName() / anyCfg.name / anyCfg.getPionPair() / anyCfg.getMCVersion() /
+                       ("module-out___binMigration");
+    tmp_bmErr.plotSummary(modPath.string(), /*asFraction=*/true);
+
     // Determination of the systematic errors
     // Loop over each kinematic bin
     for (const std::string& cfgName : sortedCfgNames_) {

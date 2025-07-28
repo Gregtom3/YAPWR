@@ -14,10 +14,13 @@
 #include <TDecompLU.h>
 #include <TMatrixD.h>
 #include <TVectorD.h>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <string>
+namespace fs = std::filesystem;
+
 /// Handle asymmetryPW results across all configs
 class AsymmetryHandler {
 

@@ -1,6 +1,10 @@
 #include "BinMigrationError.h"
 #include "Logger.h"
-
+#include <TCanvas.h>
+#include <TH2D.h>
+#include <TStyle.h>
+#include <TLatex.h>
+#include <TColor.h>
 namespace {
 constexpr int K_NEAREST_NEIGHBORS = 3;   // hard limit ±3 bins
 /* strip a leading "config_" if present → matches YAML stem keys         */
@@ -8,7 +12,6 @@ inline std::string keyStem(std::string name) {
     return name.rfind("config_",0)==0 ? name.substr(7) : std::move(name);
 }
 }
-
 
 
 
@@ -243,4 +246,103 @@ TMatrixD BinMigrationError::getMigrationMatrix_RecoRows_TrueCols() const {
             M(j, i) = F_true_reco[i][j];
 
     return M;
+}
+
+
+void BinMigrationError::plotSummary(const std::string& outDir, bool asFraction) const
+{
+    const int N = static_cast<int>(sortedCfgNames_.size());
+    if (N <= 0) return;
+
+    // ---------- labels (use same stem logic as elsewhere) ----------
+    std::vector<std::string> labels; labels.reserve(N);
+    for (const auto& name : sortedCfgNames_) labels.emplace_back(keyStem(name));
+
+    // ---------- build counts matrix N_{i->j} and fractions f_{i->j} ----------
+    // i = true (generated), j = reco (reconstructed)
+    std::vector<std::vector<double>> Nij(N, std::vector<double>(N, 0.0));
+    std::vector<double> Ngen(N, 0.0);
+
+    for (int i = 0; i < N; ++i) {
+        const std::string& cfg_i = sortedCfgNames_[i];
+        auto itResI = binMig_.find(cfg_i);
+        if (itResI == binMig_.end() || !itResI->second) continue;
+        
+        const Result& rI = *itResI->second;
+
+        // total generated in bin i
+        if (auto itN = rI.scalars.find("entries"); itN != rI.scalars.end() && itN->second > 0.0)
+            Ngen[i] = itN->second;
+        else
+            continue;
+
+        double offSum = 0.0;
+        for (int j = 0; j < N; ++j) {
+            const std::string suff_j = labels[j];
+            if (j == i) continue;
+
+            if (auto it = rI.scalars.find("other___" + suff_j); it != rI.scalars.end()) {
+                const double n_ij = it->second;           // already a raw count
+                Nij[i][j] = std::max(0.0, n_ij);
+                offSum   += std::max(0.0, n_ij);
+            }
+        }
+        // diagonal = "stayed" = N_i - sum_{j!=i} N_{i->j}, clamped
+        Nij[i][i] = std::max(0.0, Ngen[i] - offSum);
+    }
+
+    // Optional: convert to fractions row-by-row if requested
+    const char* title = nullptr;
+    if (asFraction) {
+        for (int i = 0; i < N; ++i) {
+            const double Ni = Ngen[i];
+            if (Ni <= 0) continue;
+            for (int j = 0; j < N; ++j) Nij[i][j] /= Ni;
+        }
+        title = "Bin migration fractions f_{i #rightarrow j} (i=true, j=reco)";
+    } else {
+        title = "Bin migration entries N_{i #rightarrow j} (i=true, j=reco)";
+    }
+
+    // ---------- make TH2D (X=true, Y=reco) ----------
+    auto hname = std::string("h2_binMigration_") + (asFraction ? "frac" : "counts");
+    TH2D* H = new TH2D(hname.c_str(), title, N, 0.5, N + 0.5, N, 0.5, N + 0.5);
+
+    // labels
+    std::string binVar = cfg_.getBinVariable(); // ex: "x"
+    for (int i = 0; i < N; ++i) { 
+        std::string label = binVar + " bin " + std::to_string(i);
+        H->GetXaxis()->SetBinLabel(i + 1, label.c_str()); // true
+        H->GetYaxis()->SetBinLabel(i + 1, label.c_str()); // reco
+    }
+    H->GetXaxis()->SetTitle("Generated (true) bin");
+    H->GetYaxis()->SetTitle("Reconstructed bin");
+
+    // fill
+    for (int i = 0; i < N; ++i)
+        for (int j = 0; j < N; ++j)
+            H->SetBinContent(i + 1, j + 1, Nij[i][j]);
+
+    // ---------- draw ----------
+    gStyle->SetOptStat(0);
+    gStyle->SetNumberContours(64);
+    if (asFraction) gStyle->SetPaintTextFormat("0.3f");
+    else            gStyle->SetPaintTextFormat("0.0f");
+
+    TCanvas* c = new TCanvas((hname + "_c").c_str(), "", 900, 800);
+
+    c->SetRightMargin(0.12);  // space for Z palette
+    c->SetBottomMargin(0.18); // space for long x labels
+    c->SetLeftMargin(0.20);   // space for long y labels
+
+    H->GetXaxis()->LabelsOption("v");  // vertical x labels
+    H->GetXaxis()->SetLabelSize(0.03);
+    H->GetYaxis()->SetLabelSize(0.03);
+
+    H->Draw("COLZ TEXT");     // color map + numeric text overlay
+
+    // ---------- save ----------
+    const std::string base = outDir + "/" + (asFraction ? "binMigration_matrix_frac" : "binMigration_matrix_counts");
+    c->SaveAs((base + ".png").c_str());
+    c->SaveAs((base + ".pdf").c_str());
 }
