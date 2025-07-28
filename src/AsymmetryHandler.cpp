@@ -82,7 +82,7 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
     if (mutateBinMigration_) {
         unfoldAsymmetryViaBinMigration_(allBinMig);
     }
-    
+
     // Determination of the systematic errors
     // Loop over each kinematic bin
     for (const std::string& cfgName : sortedCfgNames_) {
@@ -114,7 +114,7 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         } else {
             rBinMig = 0.0; // requested behavior
         }
-        
+
         if (auto it = modules.find("baryonContamination"); it != modules.end())
             rBary = bcErr.getRelativeError(it->second, region, termIndex);
 
@@ -247,12 +247,10 @@ void AsymmetryHandler::dumpYaml(const std::string& outPath, bool append /* = fal
     }
 }
 
-
-void AsymmetryHandler::unfoldAsymmetryViaBinMigration_(
-    const std::unordered_map<std::string, const Result*>& allBinMig) const
-{
+void AsymmetryHandler::unfoldAsymmetryViaBinMigration_(const std::unordered_map<std::string, const Result*>& allBinMig) const {
     const int N = static_cast<int>(sortedCfgNames_.size());
-    if (N <= 0) return;
+    if (N <= 0)
+        return;
 
     // Build migration matrix with rows=reco, cols=true
     // Use any Config as the "owner"; the builder uses maps/vectors
@@ -286,11 +284,11 @@ void AsymmetryHandler::unfoldAsymmetryViaBinMigration_(
 
     // Optional: report the transformation
     std::ostringstream os;
-    os.setf(std::ios::fixed); os << std::setprecision(6);
+    os.setf(std::ios::fixed);
+    os << std::setprecision(6);
     os << "BinMigration unfolding applied: A_true = M^{-1} * A_rec\n";
     for (int i = 0; i < N; ++i) {
-        os << "  [" << i << "] " << sortedCfgNames_[i]
-           << "  A_true=" << A_true(i) << '\n';
+        os << "  [" << i << "] " << sortedCfgNames_[i] << "  A_true=" << A_true(i) << '\n';
     }
     LOG_INFO(os.str());
 }

@@ -1,14 +1,14 @@
 #include "BaryonContaminationProcessor.h"
 #include "ModuleProcessorFactory.h"
 
-#include <TPie.h>
 #include <TCanvas.h>
-#include <TStyle.h>
-#include <TObject.h>
-#include <TColor.h>         
-#include <algorithm>       
-#include <TLegend.h>
+#include <TColor.h>
 #include <TLatex.h>
+#include <TLegend.h>
+#include <TObject.h>
+#include <TPie.h>
+#include <TStyle.h>
+#include <algorithm>
 
 // Self register
 namespace {
@@ -22,8 +22,6 @@ const bool registered = []() {
 std::vector<TObject*> gKeepAlive;
 
 } // namespace
-
-
 
 std::string BaryonContaminationProcessor::name() const {
     return "baryonContamination";
@@ -66,10 +64,7 @@ Result BaryonContaminationProcessor::loadData(const std::filesystem::path& dir) 
     return r;
 }
 
-
-void BaryonContaminationProcessor::plotSummary(const std::string& moduleOutDir,
-                                               const Config& cfg) const
-{
+void BaryonContaminationProcessor::plotSummary(const std::string& moduleOutDir, const Config& cfg) const {
     namespace fs = std::filesystem;
     fs::path dir = effectiveOutDir(moduleOutDir, cfg);
     auto yamlPath = dir / "baryonContamination.yaml";
@@ -83,28 +78,27 @@ void BaryonContaminationProcessor::plotSummary(const std::string& moduleOutDir,
     // pick exactly two sections
     std::vector<std::string> sections;
     if (cfg.contains_pi0()) {
-        sections = { "trueparentpid_1", "trueparentparentpid_2" };
+        sections = {"trueparentpid_1", "trueparentparentpid_2"};
     } else {
-        sections = { "trueparentpid_1", "trueparentpid_2" };
+        sections = {"trueparentpid_1", "trueparentpid_2"};
     }
 
     // color palette: [0]=gray for non‑baryon, then colors for baryons
-    static const Color_t sliceColors[6] = {
-        kGray, kRed, kBlue, kGreen+2, kMagenta, kCyan
-    };
+    static const Color_t sliceColors[6] = {kGray, kRed, kBlue, kGreen + 2, kMagenta, kCyan};
 
     // pie title
     auto pairName = cfg.getPionPair();
-    auto title    = Constants::pionPairLatex().at(pairName);
+    auto title = Constants::pionPairLatex().at(pairName);
 
     // unified lookup
     auto const& pmap = Constants::particlePalette();
     int totalEntries = root["total_entries"].as<int>();
     for (auto const& sec : sections) {
-        if (!root[sec]) continue;
+        if (!root[sec])
+            continue;
 
         // 1) read all counts
-        std::map<int,int> counts;
+        std::map<int, int> counts;
         for (auto const& kv : root[sec]) {
             int pid = std::stoi(kv.first.as<std::string>());
             counts[pid] = kv.second.as<int>();
@@ -112,7 +106,7 @@ void BaryonContaminationProcessor::plotSummary(const std::string& moduleOutDir,
 
         // 2) separate non‑baryons vs baryons
         int nonBaryonSum = 0;
-        std::map<int,int> baryonCounts;
+        std::map<int, int> baryonCounts;
         for (auto const& pr : counts) {
             int pid = pr.first, cnt = pr.second;
             if (pid == 2212) {
@@ -129,10 +123,12 @@ void BaryonContaminationProcessor::plotSummary(const std::string& moduleOutDir,
         }
 
         // 3) pick top‑5 baryons by count
-        std::vector<std::pair<int,int>> vec(baryonCounts.begin(), baryonCounts.end());
-        std::sort(vec.begin(), vec.end(),
-                  [](auto &a, auto &b){ return a.second > b.second; });
-        if (vec.size() > 5) vec.resize(5);
+        std::vector<std::pair<int, int>> vec(baryonCounts.begin(), baryonCounts.end());
+        std::sort(vec.begin(), vec.end(), [](auto& a, auto& b) {
+            return a.second > b.second;
+        });
+        if (vec.size() > 5)
+            vec.resize(5);
 
         // 4) build values & labels, starting with non‑baryon slice
         std::vector<double> vals;
@@ -142,7 +138,7 @@ void BaryonContaminationProcessor::plotSummary(const std::string& moduleOutDir,
         labels.push_back("Non-baryon");
 
         // then baryon slices with percentages
-        for (auto &pr : vec) {
+        for (auto& pr : vec) {
             int pid = pr.first;
             int cnt = pr.second;
             vals.push_back(cnt);
@@ -162,21 +158,21 @@ void BaryonContaminationProcessor::plotSummary(const std::string& moduleOutDir,
 
         // 5) draw pie
         std::string cName = "c_baryon_" + sec;
-        TCanvas* c = new TCanvas(cName.c_str(), "", 800,600);
+        TCanvas* c = new TCanvas(cName.c_str(), "", 800, 600);
         gKeepAlive.push_back(c);
 
-        TPie* pie = new TPie(("pie_"+sec).c_str(), "", vals.size());
+        TPie* pie = new TPie(("pie_" + sec).c_str(), "", vals.size());
         gKeepAlive.push_back(pie);
 
         for (size_t i = 0; i < vals.size(); ++i) {
-            pie->SetEntryVal(i,           vals[i]);
-            pie->SetEntryLabel(i,         labels[i].c_str());
-            pie->SetEntryFillColor(i,     sliceColors[i]);
+            pie->SetEntryVal(i, vals[i]);
+            pie->SetEntryLabel(i, labels[i].c_str());
+            pie->SetEntryFillColor(i, sliceColors[i]);
         }
         pie->SetRadius(0.35);
         pie->SetLabelFormat("");
         pie->Draw("nol");
-        TLegend *pieleg = pie->MakeLegend();
+        TLegend* pieleg = pie->MakeLegend();
         pieleg->SetY1(.66);
         pieleg->SetY2(.95);
         pieleg->SetX1(.7);
@@ -184,18 +180,16 @@ void BaryonContaminationProcessor::plotSummary(const std::string& moduleOutDir,
 
         // 6) Draw the header
         //    Determine which pion to show (first or second)
-        std::string singleLatex = (sec.back()=='1')
-            ? Constants::firstHadronLatex(pairName)
-            : Constants::secondHadronLatex(pairName);
+        std::string singleLatex = (sec.back() == '1') ? Constants::firstHadronLatex(pairName) : Constants::secondHadronLatex(pairName);
         std::string header = title + " dihadrons: Parent PID of " + singleLatex;
         TLatex latex;
         latex.SetTextFont(42);
-        latex.SetTextSize(0.05);    // larger text
-        latex.SetTextAlign(13);     // left + top
+        latex.SetTextSize(0.05); // larger text
+        latex.SetTextAlign(13);  // left + top
         latex.DrawLatexNDC(0.01, 0.98, header.c_str());
-        
+
         // 7) save
-        std::string base = (dir / ("baryon_"+sec)).string();
+        std::string base = (dir / ("baryon_" + sec)).string();
         c->SaveAs((base + ".png").c_str());
         c->SaveAs((base + ".pdf").c_str());
     }

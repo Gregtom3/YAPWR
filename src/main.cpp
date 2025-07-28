@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
 
             // Mutate for binMigration
             asym.setMutateBinMigration(true);
-            
+
             // Region logic
             const bool hasPi0 = (pair.find("pi0") != std::string::npos);
             std::string regionName = hasPi0 ? Constants::DEFAULT_PI0_SIGNAL_REGION : "signal";

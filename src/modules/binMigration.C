@@ -16,10 +16,10 @@
 #include "TreeManager.C"
 
 static const std::unordered_map<std::string, std::string> kTruthCut = {
-    {"piplus_piminus",  "truepid_1 == 211 && truepid_2 == -211"},
-    {"piplus_pi0",      "truepid_1 == 211 && truepid_21 == 22 && truepid_22 == 22"},
-    {"piminus_pi0",     "truepid_1 == -211 && truepid_21 == 22 && truepid_22 == 22"},
-    {"piplus_piplus",   "truepid_1 == 211 && truepid_2 == 211"},
+    {"piplus_piminus", "truepid_1 == 211 && truepid_2 == -211"},
+    {"piplus_pi0", "truepid_1 == 211 && truepid_21 == 22 && truepid_22 == 22"},
+    {"piminus_pi0", "truepid_1 == -211 && truepid_21 == 22 && truepid_22 == 22"},
+    {"piplus_piplus", "truepid_1 == 211 && truepid_2 == 211"},
     {"piminus_piminus", "truepid_1 == -211 && truepid_2 == -211"},
 };
 
@@ -168,12 +168,12 @@ void binMigration(const char* filePath, const char* treeName, const char* primar
         std::cerr << "[binMigration] ERROR: cannot open " << yamlPath << "\n";
         return;
     }
-    
+
     // 1) Derive pionPair
     std::string leafDir = gSystem->DirName(filePath);
     std::string parentDir = gSystem->DirName(leafDir.c_str());
     std::string pionPair = gSystem->BaseName(leafDir.c_str());
-    
+
     // 2) Open ROOT file & TTree
     TFile* f = new TFile(filePath, "READ");
     TTree* t = f->Get<TTree>(treeName);
@@ -181,14 +181,13 @@ void binMigration(const char* filePath, const char* treeName, const char* primar
     std::string global_expr = "MCmatch==1";
     if (auto it = kTruthCut.find(pionPair); it != kTruthCut.end())
         global_expr += " && (" + it->second + ")";
-    
+
     Long64_t totalEntries = t ? t->GetEntries(global_expr.c_str()) : 0;
 
     // 3) Top‐level metadata
     out << "file:    \"" << filePath << "\"\n";
     out << "tree:    \"" << treeName << "\"\n";
     out << "entries: " << totalEntries << "\n\n";
-
 
     // 4) PRIMARY YAML section
     out << "primary_config: \"" << primaryYaml << "\"\n";

@@ -11,13 +11,13 @@
 #include "PurityBinningError.h"
 #include "Result.h"
 #include "SidebandRegionError.h"
+#include <TDecompLU.h>
+#include <TMatrixD.h>
+#include <TVectorD.h>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <string>
-#include <TDecompLU.h>  
-#include <TMatrixD.h>   
-#include <TVectorD.h>  
 /// Handle asymmetryPW results across all configs
 class AsymmetryHandler {
 
@@ -55,7 +55,9 @@ public:
     void collectSystematics(const std::string& region, int termIndex, const std::string& binPrefix) const;
     void dumpYaml(const std::string& outPath, bool append) const;
 
-    void setMutateBinMigration(bool v) { mutateBinMigration_ = v; }
+    void setMutateBinMigration(bool v) {
+        mutateBinMigration_ = v;
+    }
 
 protected:
     void createSortedConfigNames();

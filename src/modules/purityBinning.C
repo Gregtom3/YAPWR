@@ -104,28 +104,32 @@ static void doGrid(const std::vector<double>& phi_h, const std::vector<double>& 
             const int nbx = h->GetNbinsX();
             bool anyLow = false, allLow = true;
             int firstLowBin = -1;
-            
+
             for (int b = 1; b <= nbx; ++b) {
                 const double xc = h->GetBinCenter(b);
-                if (xc <= 0.135) continue;
+                if (xc <= 0.135)
+                    continue;
                 const double cnt = h->GetBinContent(b); // IMPORTANT: before scaling
                 if (cnt < 10.0) {
                     anyLow = true;
-                    if (firstLowBin < 0) firstLowBin = b; // leftmost low‑stat bin
+                    if (firstLowBin < 0)
+                        firstLowBin = b; // leftmost low‑stat bin
                 } else {
                     allLow = false;
                 }
             }
-            
+
             // Use the first low‑stat bin center as xmax unless *all* bins are low,
             // in which case keep the default 0.40. (If there are no low bins, also keep 0.40.)
             if (anyLow && !allLow) {
                 xmaxFit = h->GetBinCenter(firstLowBin);
                 // guard against pathological cases (ensure a meaningful fit interval)
-                if (xmaxFit < 0.10) xmaxFit = 0.10;
-                if (xmaxFit <= 0.075) xmaxFit = 0.075; // minimum width safeguard
+                if (xmaxFit < 0.10)
+                    xmaxFit = 0.10;
+                if (xmaxFit <= 0.075)
+                    xmaxFit = 0.075; // minimum width safeguard
             }
-            
+
             // -------------------- normalize AFTER deciding the edge ---------------
             double area = h->Integral();
             if (area > 0)
@@ -150,42 +154,43 @@ static void doGrid(const std::vector<double>& phi_h, const std::vector<double>& 
                     purity_err = 0.0;
                     return;
                 }
-            
+
                 const double tot_int = fit->Integral(lo, hi);
                 const double tot_err = fit->IntegralError(lo, hi);
                 const double sig_int = sig->Integral(lo, hi);
-            
+
                 // error propagation for gaussian integral (same as your original)
-                const double A  = sig->GetParameter(0);
+                const double A = sig->GetParameter(0);
                 const double sA = sig->GetParError(0);
-                const double s  = sig->GetParameter(2);
+                const double s = sig->GetParameter(2);
                 const double ss = sig->GetParError(2);
-            
-                const double sig_err = std::sqrt(std::pow(std::sqrt(2 * M_PI) * s * sA, 2) +
-                                                 std::pow(A * std::sqrt(2 * M_PI) * ss, 2));
-            
-                purity     = (tot_int > 0.0) ? (sig_int / tot_int) : 0.0;
+
+                const double sig_err =
+                    std::sqrt(std::pow(std::sqrt(2 * M_PI) * s * sA, 2) + std::pow(A * std::sqrt(2 * M_PI) * ss, 2));
+
+                purity = (tot_int > 0.0) ? (sig_int / tot_int) : 0.0;
                 purity_err = ratioErr(sig_int, sig_err, tot_int, tot_err);
             };
-            
+
             // Fit + up to 5 refits if purity > 1 (keep final attempt)
             double purity = 0.0, purity_err = 0.0;
             for (int attempt = 0; attempt < 5; ++attempt) {
                 TFitResultPtr r = h->Fit(fit, "QRN"); // quiet, respect range, no draw
-            
+
                 // Update signal gaussian with the fitted gaussian params
                 sig->SetParameters(fit->GetParameter(0), fit->GetParameter(1), fit->GetParameter(2));
-            
+
                 compute_purity(purity, purity_err);
-                if (purity <= 1.0) break;
-            
+                if (purity <= 1.0)
+                    break;
+
                 // Optional: nudge starting values slightly toward current fit before refit
                 fit->SetParameters(fit->GetParameter(0), fit->GetParameter(1), fit->GetParameter(2));
                 // Next loop iteration refits; after 5 attempts, we keep the last result.
             }
-            
+
             // Store results
-            info.purity[j]    = purity;
+            info.purity[j] = purity;
             info.purityErr[j] = purity_err;
 
             // -------------------------------- draw -----------------------------
