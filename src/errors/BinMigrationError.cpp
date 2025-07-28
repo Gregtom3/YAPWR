@@ -28,7 +28,6 @@ double BinMigrationError::getRelativeError(const Result&      rSelf,
                                            const std::string& /*region*/,
                                            int                /*pw*/)
 {
-    rSelf.print(Logger::FORCE);
     /* ----------------------------------------------------------------
      * 0) basic sanity
      * ---------------------------------------------------------------- */
@@ -116,6 +115,81 @@ double BinMigrationError::getRelativeError(const Result&      rSelf,
     msg << "BinMigration ΔA_" << cfg_.name << " = " << dbg.str()
         << " = " << deltaA << "   (|ΔA|/|A| = " << relError << ')';
     LOG_DEBUG(msg.str());
+
+    logMigrationMatrix_();
     
     return relError;
+}
+
+
+
+void BinMigrationError::logMigrationMatrix_() const {
+    const int n = static_cast<int>(sortedCfgNames_.size());
+    if (n <= 0) return;
+
+    // Build display labels using the same stem logic
+    std::vector<std::string> labels; labels.reserve(n);
+    int labw = 0;
+    for (const auto& name : sortedCfgNames_) {
+        std::string s = keyStem(name);
+        labw = std::max(labw, static_cast<int>(s.size()));
+        labels.push_back(std::move(s));
+    }
+
+    // M[i][j] = f_{i -> j}
+    std::vector<std::vector<double>> M(n, std::vector<double>(n, 0.0));
+
+    for (int i = 0; i < n; ++i) {
+        auto itResI = binMig_.find(sortedCfgNames_[i]);
+        if (itResI == binMig_.end() || !itResI->second) continue;
+
+        const Result& rI = *itResI->second;
+
+        const auto itNgen = rI.scalars.find("entries");
+        if (itNgen == rI.scalars.end() || itNgen->second <= 0) continue;
+
+        const double Ngen_i = itNgen->second;
+
+        double sumOther = 0.0;
+        for (int j = 0; j < n; ++j) {
+            if (j == i) continue; // off-diagonals first
+            const std::string key = "other___" + labels[j];
+            const auto it = rI.scalars.find(key);
+            if (it != rI.scalars.end()) {
+                const double f_ij = it->second / Ngen_i;
+                M[i][j] = f_ij;
+                sumOther += f_ij;
+            }
+        }
+
+        // Diagonal as the complement of the "other" fractions.
+        // Clamp to [0, 1] to avoid tiny negative values from rounding.
+        const double fii = std::max(0.0, 1.0 - sumOther);
+        M[i][i] = std::min(1.0, fii);
+    }
+
+    // Pretty print
+    std::ostringstream os;
+    os.setf(std::ios::fixed);
+    os << std::setprecision(4);
+
+    const int nameW = std::max(labw, 8);
+    const int cellW = std::max(8, labw);
+
+    os << "Bin-migration matrix f_{i,j} (rows = generated i, columns = reconstructed j)\n";
+    os << std::setw(nameW) << "gen\\rec";
+    for (int j = 0; j < n; ++j) os << ' ' << std::setw(cellW) << labels[j];
+    os << '\n';
+
+    for (int i = 0; i < n; ++i) {
+        os << std::setw(nameW) << labels[i];
+        double rowSum = 0.0;
+        for (int j = 0; j < n; ++j) {
+            rowSum += M[i][j];
+            os << ' ' << std::setw(cellW) << M[i][j];
+        }
+        os << "   | row_sum=" << std::setw(6) << std::setprecision(4) << rowSum << '\n';
+    }
+
+    LOG_INFO(os.str());
 }

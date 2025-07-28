@@ -3,6 +3,10 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include <algorithm>
+#include <iomanip>
+#include <mutex>
+#include <sstream>
 
 class BinMigrationError : public Error {
 public:
@@ -25,4 +29,5 @@ private:
     const std::vector<std::string>&                 sortedCfgNames_;
     const std::unordered_map<std::string,double>&   asymValue_;
     const std::unordered_map<std::string,const Result*>& binMig_;
+    void logMigrationMatrix_() const;
 };
