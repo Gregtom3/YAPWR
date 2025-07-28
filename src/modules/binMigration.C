@@ -15,6 +15,14 @@
 
 #include "TreeManager.C"
 
+static const std::unordered_map<std::string, std::string> kTruthCut = {
+    {"piplus_piminus",  "truepid_1 == 211 && truepid_2 == -211"},
+    {"piplus_pi0",      "truepid_1 == 211 && truepid_21 == 22 && truepid_22 == 22"},
+    {"piminus_pi0",     "truepid_1 == -211 && truepid_21 == 22 && truepid_22 == 22"},
+    {"piplus_piplus",   "truepid_1 == 211 && truepid_2 == 211"},
+    {"piminus_piminus", "truepid_1 == -211 && truepid_2 == -211"},
+};
+
 // ------------------------------------------------------------------
 // Dump a YAML section for `key`, preserving indentation.
 // Writes each trimmed line prefixed by `indent` to `out`.
@@ -160,22 +168,27 @@ void binMigration(const char* filePath, const char* treeName, const char* primar
         std::cerr << "[binMigration] ERROR: cannot open " << yamlPath << "\n";
         return;
     }
-
-    // 1) Open ROOT file & TTree
+    
+    // 1) Derive pionPair
+    std::string leafDir = gSystem->DirName(filePath);
+    std::string parentDir = gSystem->DirName(leafDir.c_str());
+    std::string pionPair = gSystem->BaseName(leafDir.c_str());
+    
+    // 2) Open ROOT file & TTree
     TFile* f = new TFile(filePath, "READ");
     TTree* t = f->Get<TTree>(treeName);
     util::loadEntryList(t, primaryYaml, true);
-    Long64_t totalEntries = t ? t->GetEntries("MCmatch==1") : 0;
+    std::string global_expr = "MCmatch==1";
+    if (auto it = kTruthCut.find(pionPair); it != kTruthCut.end())
+        global_expr += " && (" + it->second + ")";
+    
+    Long64_t totalEntries = t ? t->GetEntries(global_expr.c_str()) : 0;
 
-    // 2) Top‐level metadata
+    // 3) Top‐level metadata
     out << "file:    \"" << filePath << "\"\n";
     out << "tree:    \"" << treeName << "\"\n";
     out << "entries: " << totalEntries << "\n\n";
 
-    // 3) Derive pionPair
-    std::string leafDir = gSystem->DirName(filePath);
-    std::string parentDir = gSystem->DirName(leafDir.c_str());
-    std::string pionPair = gSystem->BaseName(leafDir.c_str());
 
     // 4) PRIMARY YAML section
     out << "primary_config: \"" << primaryYaml << "\"\n";
@@ -187,12 +200,10 @@ void binMigration(const char* filePath, const char* treeName, const char* primar
         std::cout << primaryYaml << "......." << pionPair << std::endl;
         auto primCuts = parseCuts(primaryYaml, pionPair.c_str());
         if (!primCuts.empty() && t) {
-            std::string expr = "MCmatch==1 && ";
-            for (size_t i = 0; i < primCuts.size(); ++i) {
-                if (i)
-                    expr += " && ";
-                expr += transformCut(primCuts[i]);
-            }
+            std::string expr = global_expr;
+            for (size_t i = 0; i < primCuts.size(); ++i)
+                expr += " && (" + transformCut(primCuts[i]) + ")";
+
             out << "primary_cuts_expr: \"" << expr << "\"\n";
             Long64_t nPrim = t->GetEntries(expr.c_str());
             out << "primary_passing:   " << nPrim << "\n\n";
@@ -215,12 +226,10 @@ void binMigration(const char* filePath, const char* treeName, const char* primar
             continue;
         }
 
-        std::string expr = "MCmatch==1 && ";
-        for (size_t i = 0; i < cuts.size(); ++i) {
-            if (i)
-                expr += " && ";
-            expr += transformCut(cuts[i]);
-        }
+        std::string expr = global_expr;
+        for (size_t i = 0; i < cuts.size(); ++i)
+            expr += " && (" + transformCut(cuts[i]) + ")";
+
         out << "  transformed_expr: \"" << expr << "\"\n";
         Long64_t nPass = t->GetEntries(expr.c_str());
         out << "  passing:          " << nPass << "\n\n";
