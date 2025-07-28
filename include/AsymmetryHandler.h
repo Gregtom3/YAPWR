@@ -71,6 +71,7 @@ private:
                                  int termIndex = 0) const; // defaults
     std::pair<std::string, double> getBinInfo(const std::string& cfgName, const std::string& binPrefix) const;
     void unfoldAsymmetryViaBinMigration_(const std::unordered_map<std::string, const Result*>& allBinMig) const;
+    void unfoldAsymmetryViaBinMigrationSVD_(const std::unordered_map<std::string, const Result*>& allBinMig) const;
     AsymmetryProcessor asymProc_;
     std::vector<std::string> sortedCfgNames_;
     const std::map<std::string, Config> configMap_;

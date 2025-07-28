@@ -13,6 +13,7 @@ static const std::map<std::string, std::string> runToMc = {{"Fall2018_RGA_inbend
                                                            {"Fall2018Spring2019_RGA_inbending", "MC_RGA_inbending"}};
 
 static const std::string DEFAULT_PI0_SIGNAL_REGION = "signal_purity_1_1";
+static const double INVERSION_LAMBDA = 0.02;
 
 static const std::vector<std::string> validPairs = {"piplus_piplus", "piplus_piminus", "piplus_pi0", "piminus_pi0", "piminus_piminus"};
 

@@ -1,5 +1,63 @@
 #include "AsymmetryHandler.h"
 #include "Logger.h"
+#include <TMatrixD.h>
+#include <TVectorD.h>
+#include <TDecompChol.h>
+#include <TDecompLU.h>
+
+static TMatrixD makeLTL_FirstDiff(int N) {
+    TMatrixD LTL(N, N); LTL.Zero();
+    if (N <= 1) return LTL;
+    // Each first-difference contributes a 2×2 block:
+    //  [ +1  -1 ]
+    //  [ -1  +1 ]
+    for (int i = 0; i < N - 1; ++i) {
+        LTL(i,   i  ) +=  1.0;
+        LTL(i,   i+1) += -1.0;
+        LTL(i+1, i  ) += -1.0;
+        LTL(i+1, i+1) +=  1.0;
+    }
+    return LTL;
+}
+
+// Solve (M^T M + lambda L^T L) x = M^T y  (first-difference Tikhonov)
+// M : R×N  (rows=reco, cols=true)
+// y : length R  (A_rec)
+// lambda >= 0
+static TVectorD solveTikhonovFirstDiff(const TMatrixD& M, const TVectorD& y, double lambda)
+{
+    const int R = M.GetNrows();
+    const int N = M.GetNcols();
+
+    // A = M^T M + lambda L^T L
+    TMatrixD MT(TMatrixD::kTransposed, M);
+    TMatrixD A = MT * M;
+
+    if (lambda > 0.0) {
+        TMatrixD LTL = makeLTL_FirstDiff(N);
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j)
+                A(i,j) += lambda * LTL(i,j);
+    }
+
+    // rhs = M^T y
+    TVectorD rhs = MT * y;
+
+    // Prefer Cholesky (SPD). Fall back to LU if needed.
+    TDecompChol chol(A);
+    Bool_t ok = chol.Decompose();
+    if (ok) {
+        // TDecompChol::Solve(const TVectorD&, Bool_t&) returns the solution
+        TVectorD x = chol.Solve(rhs, ok);
+        if (ok) return x;
+    }
+    // Fallback: LU — use the in-place Solve that returns Bool_t
+    TDecompLU lu(A);
+    ok = lu.Decompose();
+    TVectorD x = rhs;                 // copy RHS; LU will overwrite with solution
+    if (ok) ok = lu.Solve(x);         // returns Bool_t; x holds solution on success
+    return x;
+}
 
 AsymmetryHandler::AsymmetryHandler(const std::map<std::string, std::map<std::string, Result>>& allResults,
                                    const std::map<std::string, Config>& configMap)
@@ -81,7 +139,7 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
 
     // Third, if requested, unfold: A_true = M^{-1} * A_rec
     if (mutateBinMigration_) {
-        unfoldAsymmetryViaBinMigration_(allBinMig);
+        unfoldAsymmetryViaBinMigrationSVD_(allBinMig);
     }
 
     // Fourth, specially plot the binMigrationError
@@ -303,4 +361,30 @@ void AsymmetryHandler::unfoldAsymmetryViaBinMigration_(const std::unordered_map<
         os << "  [" << i << "] " << sortedCfgNames_[i] << "  A_true=" << A_true(i) << '\n';
     }
     LOG_INFO(os.str());
+}
+
+void AsymmetryHandler::unfoldAsymmetryViaBinMigrationSVD_(
+    const std::unordered_map<std::string, const Result*>& allBinMig) const
+{
+    const int N = static_cast<int>(sortedCfgNames_.size());
+    if (N <= 0) return;
+
+    // Forward matrix: rows=reco, cols=true (A_rec = M * A_true)
+    const Config& anyCfg = configMap_.at(sortedCfgNames_.front());
+    BinMigrationError bmErr(anyCfg, configMap_, sortedCfgNames_, asymValue_, allBinMig);
+    TMatrixD M = bmErr.getMigrationMatrix_RecoRows_TrueCols();   // N×N typically
+
+    // y = A_rec in reco-bin order
+    TVectorD A_rec(N);
+    for (int j = 0; j < N; ++j) A_rec(j) = asymValue_.at(sortedCfgNames_[j]);
+
+    const double lambda = Constants::INVERSION_LAMBDA; 
+
+    TVectorD A_true = solveTikhonovFirstDiff(M, A_rec, lambda);
+
+    // Store back
+    for (int i = 0; i < N; ++i)
+        asymValue_.at(sortedCfgNames_[i]) = A_true(i);
+
+    LOG_INFO("Tikhonov (first-diff) unfolding applied, lambda=" << lambda);
 }
