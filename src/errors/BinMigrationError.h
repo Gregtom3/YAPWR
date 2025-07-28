@@ -28,7 +28,9 @@ public:
     // This orientation satisfies  A_rec = M * A_true  ⇒  A_true = M^{-1} * A_rec
     TMatrixD getMigrationMatrix_RecoRows_TrueCols() const;
     void plotSummary(const std::string& outDir, bool asFraction = false) const;
-
+    void saveMigrationDataToYaml(const std::string& outDir,
+                                 int pwTerm,
+                                 const std::unordered_map<std::string, double>& unalteredAsymValues) const;
 private:
     const Config&                                   cfg_;
     const std::map<std::string,Config>&             configMap_;

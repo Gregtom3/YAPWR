@@ -90,7 +90,7 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
     fs::path modPath = fs::path("out") / anyCfg.getProjectName() / anyCfg.name / anyCfg.getPionPair() / anyCfg.getMCVersion() /
                        ("module-out___binMigration");
     tmp_bmErr.plotSummary(modPath.string(), /*asFraction=*/true);
-
+    
     // Determination of the systematic errors
     // Loop over each kinematic bin
     for (const std::string& cfgName : sortedCfgNames_) {
@@ -120,6 +120,7 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
             if (auto it = modules.find("binMigration"); it != modules.end())
                 rBinMig = bmErr.getRelativeError(it->second, region, termIndex);
         } else {
+            tmp_bmErr.saveMigrationDataToYaml(modPath.string(),termIndex,origAsymValue);
             rBinMig = 0.0; // requested behavior
         }
 

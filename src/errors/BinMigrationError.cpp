@@ -5,6 +5,12 @@
 #include <TStyle.h>
 #include <TLatex.h>
 #include <TColor.h>
+#include <filesystem>
+#include <fstream>
+#include <yaml-cpp/yaml.h>
+#include <TDecompLU.h>
+#include <TMatrixD.h>
+
 namespace {
 constexpr int K_NEAREST_NEIGHBORS = 3;   // hard limit ±3 bins
 /* strip a leading "config_" if present → matches YAML stem keys         */
@@ -345,4 +351,151 @@ void BinMigrationError::plotSummary(const std::string& outDir, bool asFraction) 
     const std::string base = outDir + "/" + (asFraction ? "binMigration_matrix_frac" : "binMigration_matrix_counts");
     c->SaveAs((base + ".png").c_str());
     c->SaveAs((base + ".pdf").c_str());
+}
+
+
+void BinMigrationError::saveMigrationDataToYaml(
+        const std::string& outDir,
+        int pwTerm,
+        const std::unordered_map<std::string, double>& unalteredAsymValues) const
+{
+    namespace fs = std::filesystem;
+
+    const int N = static_cast<int>(sortedCfgNames_.size());
+    if (N <= 0) {
+        LOG_WARN("saveMigrationDataToYaml: no bins to save");
+        return;
+    }
+
+    // Ensure output directory exists
+    std::error_code ec;
+    fs::create_directories(outDir, ec);
+    if (ec) {
+        LOG_ERROR("saveMigrationDataToYaml: cannot create directory '" << outDir << "': " << ec.message());
+        return;
+    }
+
+    // 1) Labels in the canonical (sorted) order
+    std::vector<std::string> labels; labels.reserve(N);
+    for (const auto& name : sortedCfgNames_) labels.emplace_back(keyStem(name));
+
+    // 2) Build migration matrix (rows=reco j, cols=true i)
+    TMatrixD M = getMigrationMatrix_RecoRows_TrueCols();
+
+    // 3) Invert (LU)
+    Bool_t ok = kFALSE;
+    TDecompLU decomp(M);
+    TMatrixD Minv = decomp.Invert(ok);
+
+    // 4) Gather asymmetries (unaltered provided; altered from current map)
+    //    Emit both as a map (keyed by label) and a vector in bin order.
+    std::vector<double> A_raw_vec; A_raw_vec.reserve(N);
+    std::vector<double> A_alt_vec; A_alt_vec.reserve(N);
+
+    // Build maps with label keys for readability
+    std::map<std::string, double> A_raw_map;
+    std::map<std::string, double> A_alt_map;
+
+    for (int k = 0; k < N; ++k) {
+        const std::string& cfgName = sortedCfgNames_[k];
+        const std::string& lab     = labels[k];
+
+        // unaltered (may be missing → write YAML null)
+        auto it_raw = unalteredAsymValues.find(cfgName);
+        if (it_raw != unalteredAsymValues.end()) {
+            A_raw_vec.push_back(it_raw->second);
+            A_raw_map[lab] = it_raw->second;
+        } else {
+            A_raw_vec.push_back(std::numeric_limits<double>::quiet_NaN());
+            // leave out of map on purpose; we’ll emit YAML null below if desired
+        }
+
+        // altered/current
+        auto it_alt = asymValue_.find(cfgName);
+        if (it_alt != asymValue_.end()) {
+            A_alt_vec.push_back(it_alt->second);
+            A_alt_map[lab] = it_alt->second;
+        } else {
+            A_alt_vec.push_back(std::numeric_limits<double>::quiet_NaN());
+        }
+    }
+
+    // 5) Serialize to YAML
+    YAML::Emitter out;
+    out.SetFloatPrecision(16);  // keep precision for matrices
+
+    out << YAML::BeginMap;
+
+    // Metadata
+    out << YAML::Key << "bin_variable" << YAML::Value << cfg_.getBinVariable();
+    out << YAML::Key << "matrix_orientation"
+        << YAML::Value << "rows = reconstructed (j), cols = true/generated (i); A_rec = M * A_true";
+
+    // Bin order (labels)
+    out << YAML::Key << "bin_order" << YAML::Value << YAML::Flow << YAML::BeginSeq;
+    for (const auto& lab : labels) out << lab;
+    out << YAML::EndSeq;
+
+    // Matrix M
+    out << YAML::Key << "binMigrationMatrix" << YAML::Value << YAML::BeginSeq;
+    for (int r = 0; r < N; ++r) {
+        out << YAML::Flow << YAML::BeginSeq;
+        for (int c = 0; c < N; ++c) out << M(r, c);
+        out << YAML::EndSeq;
+    }
+    out << YAML::EndSeq;
+
+    // Inverse
+    out << YAML::Key << "inversion_ok" << YAML::Value << static_cast<bool>(ok);
+    if (ok) {
+        out << YAML::Key << "binMigrationMatrix_inverse" << YAML::Value << YAML::BeginSeq;
+        for (int r = 0; r < N; ++r) {
+            out << YAML::Flow << YAML::BeginSeq;
+            for (int c = 0; c < N; ++c) out << Minv(r, c);
+            out << YAML::EndSeq;
+        }
+        out << YAML::EndSeq;
+    }
+
+    // Asymmetries: maps (for readability)
+    out << YAML::Key << "unalteredAsymValues" << YAML::Value << YAML::BeginMap;
+    for (const auto& lab : labels) {
+        auto it = A_raw_map.find(lab);
+        out << YAML::Key << lab;
+        if (it != A_raw_map.end()) out << YAML::Value << it->second;
+        else                       out << YAML::Value << YAML::Null;
+    }
+    out << YAML::EndMap;
+
+    out << YAML::Key << "alteredAsymValues" << YAML::Value << YAML::BeginMap;
+    for (const auto& lab : labels) {
+        auto it = A_alt_map.find(lab);
+        out << YAML::Key << lab;
+        if (it != A_alt_map.end()) out << YAML::Value << it->second;
+        else                       out << YAML::Value << YAML::Null;
+    }
+    out << YAML::EndMap;
+
+    // Also provide vectors in bin order (handy for quick NumPy loads, etc.)
+    out << YAML::Key << "unalteredAsymValues_vec" << YAML::Value << YAML::Flow << YAML::BeginSeq;
+    for (double v : A_raw_vec) out << v;
+    out << YAML::EndSeq;
+
+    out << YAML::Key << "alteredAsymValues_vec" << YAML::Value << YAML::Flow << YAML::BeginSeq;
+    for (double v : A_alt_vec) out << v;
+    out << YAML::EndSeq;
+
+    out << YAML::EndMap;
+
+    // 6) Write file
+    const fs::path outPath = fs::path(outDir) / ("binMigration_data___b_" + std::to_string(pwTerm) + ".yaml");
+    std::ofstream fout(outPath);
+    if (!fout) {
+        LOG_ERROR("saveMigrationDataToYaml: unable to open '" << outPath.string() << "' for writing");
+        return;
+    }
+    fout << out.c_str();
+    fout.close();
+
+    LOG_INFO("saveMigrationDataToYaml: wrote " << outPath.string());
 }
