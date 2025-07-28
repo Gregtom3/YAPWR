@@ -36,6 +36,7 @@ class AsymmetryHandler {
         std::string region;
         double binVal = NAN; // numeric value of that variable
         double A = NAN;      // asymmetry
+        double A_raw = NAN;  // unaltered asymmetry (without unfolding)
         double sStat = NAN;  // statistical error
         double sSys = NAN;   // total systematic error
 

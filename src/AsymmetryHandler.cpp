@@ -72,7 +72,8 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
 
     // First initialize the Asymmetry map, logging all asymmetry values/statistical errors
     initializeAsymmetryMaps(region, termIndex);
-
+    const std::unordered_map<std::string, double> origAsymValue = asymValue_; // save unaltered
+    
     // Second, initialize the map for the full bin migration
     std::unordered_map<std::string, const Result*> allBinMig;
     for (auto& [cfgName, modules] : allResults_)
@@ -193,7 +194,10 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         rec.A = A;
         rec.sStat = sStat;
         rec.sSys = sSys;
-
+        // Fetch the raw unaltered asymmetry
+        auto itAraw = origAsymValue.find(cfgName);
+        rec.A_raw   = (itAraw != origAsymValue.end()) ? itAraw->second : A;
+        
         rec.rBinMig = rBinMig;
         rec.aBinMig = sBinMig;
         rec.rBary = rBary;
@@ -225,7 +229,7 @@ void AsymmetryHandler::dumpYaml(const std::string& outPath, bool append /* = fal
             << YAML::Key << "runVersion" << YAML::Value << r.runVersion << YAML::Key << "twist" << YAML::Value << r.TWIST << YAML::Key
             << "L" << YAML::Value << r.L << YAML::Key << "M" << YAML::Value << r.M << YAML::Key << "modulation" << YAML::Value
             << r.modulationLatex << YAML::Key << "region" << YAML::Value << r.region << YAML::Key << r.binVar << YAML::Value
-            << r.binVal << YAML::Key << "A" << YAML::Value << r.A << YAML::Key << "sStat" << YAML::Value << r.sStat << YAML::Key
+            << r.binVal << YAML::Key << "A" << YAML::Value << r.A << YAML::Key << "A_raw" << YAML::Value << r.A_raw << YAML::Key << "sStat" << YAML::Value << r.sStat << YAML::Key
             << "sSys" << YAML::Value << r.sSys << YAML::Key << "systematics" << YAML::Value << YAML::BeginMap << YAML::Key
             << "binMigration" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rBinMig << r.aBinMig << YAML::EndSeq << YAML::Key
             << "baryonContamination" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rBary << r.aBary << YAML::EndSeq << YAML::Key
