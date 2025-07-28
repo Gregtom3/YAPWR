@@ -5,7 +5,7 @@
 #include <TCanvas.h>
 #include <TStyle.h>
 #include <TObject.h>
-#include <TColor.h>          
+#include <TColor.h>         
 #include <algorithm>       
 #include <TLegend.h>
 #include <TLatex.h>
