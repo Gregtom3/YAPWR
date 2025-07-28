@@ -192,7 +192,7 @@ def fetchAx(yamlData,
     if xlim is not None: ax.set_xlim(xlim)
     if ylim is not None: ax.set_ylim(ylim)
 
-    ax.legend()
+    ax.legend(frameon=True)
     return ax
 
 def plotSysFig(yamlData,
@@ -232,9 +232,13 @@ def plotSysFig(yamlData,
                 for src, item in rec['systematics'].items():
                     if isinstance(item, list):
                         # [rel, abs]
+                        if item[1]==0:
+                            continue
                         sys_by_src.setdefault(src, []).append(float(item[1]))
                     elif isinstance(item, dict):
                         for subsrc, subitem in item.items():
+                            if subitem[1]==0:
+                                continue
                             sys_by_src.setdefault(subsrc, []).append(float(subitem[1]))
                     else:
                         raise TypeError("Unexpected format for '{}'".format(src))
