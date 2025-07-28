@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <mutex>
 #include <sstream>
+#include <TMatrixD.h>
 
 class BinMigrationError : public Error {
 public:
@@ -22,6 +23,10 @@ public:
     double getRelativeError(const Result&      r,
                             const std::string& region,
                             int                pwTerm);
+
+    // Build M with rows = reconstructed bins, columns = true (generated) bins.
+    // This orientation satisfies  A_rec = M * A_true  ⇒  A_true = M^{-1} * A_rec
+    TMatrixD getMigrationMatrix_RecoRows_TrueCols() const;
 
 private:
     const Config&                                   cfg_;

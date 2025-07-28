@@ -193,3 +193,54 @@ void BinMigrationError::logMigrationMatrix_() const {
 
     LOG_INFO(os.str());
 }
+
+
+TMatrixD BinMigrationError::getMigrationMatrix_RecoRows_TrueCols() const {
+    const int N = static_cast<int>(sortedCfgNames_.size());
+    TMatrixD M(N, N);  // rows: reconstructed j, cols: true i
+    for (int r = 0; r < N; ++r)
+        for (int c = 0; c < N; ++c)
+            M(r, c) = 0.0;
+
+    // First build f_{i->j} with rows=true(i), cols=reco(j)
+    std::vector<std::vector<double>> F_true_reco(N, std::vector<double>(N, 0.0));
+
+    // Fill off-diagonals from "other___<suffix_j>", then set diagonal as complement
+    for (int i = 0; i < N; ++i) {
+        const std::string& cfg_i = sortedCfgNames_[i];
+        const auto itResI = binMig_.find(cfg_i);
+        if (itResI == binMig_.end() || !itResI->second) continue;
+
+        const Result& rI = *itResI->second;
+        const auto itNgen = rI.scalars.find("entries");
+        if (itNgen == rI.scalars.end() || itNgen->second <= 0) continue;
+        const double Ngen_i = itNgen->second;
+
+        const std::string suff_i = keyStem(cfg_i);
+
+        double sumOther = 0.0;
+        for (int j = 0; j < N; ++j) {
+            const std::string& cfg_j = sortedCfgNames_[j];
+            const std::string suff_j = keyStem(cfg_j);
+            if (j == i) continue;
+
+            double f_ij = 0.0;
+            if (auto it = rI.scalars.find("other___" + suff_j); it != rI.scalars.end()) {
+                f_ij = it->second / Ngen_i;
+            }
+            F_true_reco[i][j] = f_ij;
+            sumOther += f_ij;
+        }
+        // diagonal as complement; clamp to [0,1] for numerical safety
+        double fii = std::max(0.0, 1.0 - sumOther);
+        F_true_reco[i][i] = std::min(1.0, fii);
+    }
+
+    // Transpose into M with rows=reco(j), cols=true(i):
+    // A_rec(j) = sum_i M(j,i) * A_true(i)
+    for (int i = 0; i < N; ++i)
+        for (int j = 0; j < N; ++j)
+            M(j, i) = F_true_reco[i][j];
+
+    return M;
+}

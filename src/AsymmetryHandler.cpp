@@ -77,6 +77,12 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
     std::unordered_map<std::string, const Result*> allBinMig;
     for (auto& [cfgName, modules] : allResults_)
         allBinMig[cfgName] = &modules.at("binMigration");
+
+    // Third, if requested, unfold: A_true = M^{-1} * A_rec
+    if (mutateBinMigration_) {
+        unfoldAsymmetryViaBinMigration_(allBinMig);
+    }
+    
     // Determination of the systematic errors
     // Loop over each kinematic bin
     for (const std::string& cfgName : sortedCfgNames_) {
@@ -101,9 +107,14 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         SidebandRegionError sregErr(thisConfig, A);
         PurityBinningError pbinErr(thisConfig, A);
 
-        if (auto it = modules.find("binMigration"); it != modules.end())
-            rBinMig = bmErr.getRelativeError(it->second, region, termIndex);
-
+        // Fetch each systematic errror
+        if (!mutateBinMigration_) { // skip binMigration error if we choose to mutate it instead
+            if (auto it = modules.find("binMigration"); it != modules.end())
+                rBinMig = bmErr.getRelativeError(it->second, region, termIndex);
+        } else {
+            rBinMig = 0.0; // requested behavior
+        }
+        
         if (auto it = modules.find("baryonContamination"); it != modules.end())
             rBary = bcErr.getRelativeError(it->second, region, termIndex);
 
@@ -234,4 +245,52 @@ void AsymmetryHandler::dumpYaml(const std::string& outPath, bool append /* = fal
             fout << '\n';
         fout << out.c_str();
     }
+}
+
+
+void AsymmetryHandler::unfoldAsymmetryViaBinMigration_(
+    const std::unordered_map<std::string, const Result*>& allBinMig) const
+{
+    const int N = static_cast<int>(sortedCfgNames_.size());
+    if (N <= 0) return;
+
+    // Build migration matrix with rows=reco, cols=true
+    // Use any Config as the "owner"; the builder uses maps/vectors
+    const Config& anyCfg = configMap_.at(sortedCfgNames_.front());
+    BinMigrationError bmErr(anyCfg, configMap_, sortedCfgNames_, asymValue_, allBinMig);
+    TMatrixD M = bmErr.getMigrationMatrix_RecoRows_TrueCols();
+
+    // Assemble A_rec in the same order as sortedCfgNames_ (reco bins)
+    TVectorD A_rec(N);
+    for (int j = 0; j < N; ++j) {
+        const std::string& cfg = sortedCfgNames_[j];
+        A_rec(j) = asymValue_.at(cfg);
+    }
+
+    // Invert M and compute A_true
+    TDecompLU decomp(M);
+    Bool_t ok;
+    TMatrixD M_inv = decomp.Invert(ok);
+    if (!ok) {
+        LOG_ERROR("BinMigration unfolding: matrix inversion failed; leaving asymmetries unchanged");
+        return;
+    }
+
+    TVectorD A_true = M_inv * A_rec;
+
+    // Replace asymValue_ with unfolded values in-place
+    for (int i = 0; i < N; ++i) {
+        const std::string& cfg = sortedCfgNames_[i];
+        asymValue_[cfg] = A_true(i);
+    }
+
+    // Optional: report the transformation
+    std::ostringstream os;
+    os.setf(std::ios::fixed); os << std::setprecision(6);
+    os << "BinMigration unfolding applied: A_true = M^{-1} * A_rec\n";
+    for (int i = 0; i < N; ++i) {
+        os << "  [" << i << "] " << sortedCfgNames_[i]
+           << "  A_true=" << A_true(i) << '\n';
+    }
+    LOG_INFO(os.str());
 }
