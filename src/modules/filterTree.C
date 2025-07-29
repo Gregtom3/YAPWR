@@ -6,10 +6,10 @@
 #include <yaml-cpp/yaml.h>
 
 const std::vector<std::string>& keepBranches = {"x",         "Q2",         "y",      "hel",   "eps",     "Mh",     "M2",
-                                                "Pol",       "phi_h",      "phi_R1", "th",    "z",       "xF",     "Mx",
+                                                "Pol",       "phi_h",      "phi_R1", "th",    "z",       "xF",     "Mx", "MCmatch",
                                                 "pTtot",     "truex",      "trueQ2", "truey", "trueeps", "trueMh", "trueM2",
                                                 "truephi_h", "truephi_R1", "trueth", "truez", "truexF",  "trueMx", "truepTtot",
-                                                "truepid_1", "truepid_2", "truepid_21", "truepid_22"};
+                                                "truepid_1", "truepid_2", "truepid_21", "truepid_22", "trueparentpid_1","trueparentpid_2"};
 
 void filterTree(const char* inputPath, const char* treeName, const char* configPath, const char* pairName, const char* outputDir,
                 Int_t maxEntries = -1) {
