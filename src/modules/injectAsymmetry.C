@@ -202,7 +202,7 @@ AsymmetryPW::AsymmetryPW(const char* r, const char* t, const char* p, const char
 
         for (int i = 0; i < bl->GetEntries(); ++i) {
             const char* nm = bl->At(i)->GetName();
-
+            
             // select purity_X_Y but skip purity_err_X_Y
             if (strncmp(nm, "purity_", 7) == 0 && strncmp(nm, "purity_err_", 11) != 0) {
                 // push only the first time we encounter this name

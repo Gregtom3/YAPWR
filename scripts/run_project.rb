@@ -283,6 +283,17 @@ modules.each do |mod|
     args += config_files if config_files.any?
     invoke('asymmetry_sideband', *args)
 
+  when 'asymmetryInject'
+    args = ['ruby', './scripts/modules/module___asymmetryInject.rb']
+
+    args << '--slurm' if options[:is_running_on_slurm]
+    if options[:is_running_on_slurm] && purity_ids.any?
+      args << '--dependency' << "afterok:#{purity_ids.join(',')}"
+    end
+    args << project_name
+    args += config_files if config_files.any?
+    invoke('asymmetryInject', *args)
+      
   when 'kinematicBins'
     args = ['ruby', './scripts/modules/module___kinematicBins.rb']
     # Relatively fast, does not necessarily need to be its own job
