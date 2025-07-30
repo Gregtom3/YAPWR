@@ -27,6 +27,13 @@ static std::string gBackgroundRegion = "M2>0.2&&M2<0.4";
 static std::string gFullRegion = "th>-9999";
 static std::string gOutputFilename = "asymmetryInjection_results.yaml";
 
+inline std::string pad4(int n)
+{
+    std::ostringstream s;
+    s << std::setw(4) << std::setfill('0') << n;
+    return s.str();
+}
+
 struct InjectAmp {
     double sig[12];  
     double bkg[12];
@@ -493,12 +500,15 @@ void injectAsymmetry(const char* input,
                      const char* tree,
                      const char* pair,
                      const char* outDir,
-                     const char* yamlPath = nullptr)   // <‑‑ new, optional
+                     const char* yamlPath = nullptr,
+                     const int   trial = 0) 
 {
     // optionally override the hard‑coded amplitudes
     if (yamlPath && yamlPath[0])
         loadAsymmetriesFromYaml(yamlPath, pair);
 
+    // Change the output path name
+    gOutputFilename = "asymmetryInjection_results_" + pad4(trial) + ".yaml";
     gSystem->mkdir(outDir, true);
     AsymmetryPW job(input, tree, pair, outDir);
     job.Loop();
