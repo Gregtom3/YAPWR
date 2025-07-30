@@ -1,6 +1,3 @@
-// ────────────────────────────────────────────────────────────
-//  src/AsymmetryPW.C   – side-band asymmetry fitter
-// ----------------------------------------------------------------
 #include <TFile.h>
 #include <TMath.h>
 #include <TSystem.h>
@@ -21,6 +18,7 @@
 #include <tuple>
 #include <unordered_set>
 #include <vector>
+#include <yaml-cpp/yaml.h>
 
 using namespace RooFit;
 
@@ -38,6 +36,38 @@ struct InjectAmp {
     /* bkg */ { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}   // by default no background modulation
 };
+
+static bool loadAsymmetriesFromYaml(const std::string& ypath,
+                                    const std::string& pair)
+{
+    YAML::Node root;
+    try         { root = YAML::LoadFile(ypath); }
+    catch (...) { std::cerr<<"YAML load failed: "<<ypath<<"\n"; return false; }
+
+    if (!root["results"] || !root["results"].IsSequence()) return false;
+
+    const bool isPi0 = (pair=="piplus_pi0" || pair=="piminus_pi0");
+    const std::string wantSig = isPi0 ? "signal_purity_1_1" : "signal";
+
+    for (const auto& node : root["results"])
+    {
+        if (!node["region"]) continue;
+        const std::string reg = node["region"].as<std::string>();
+
+        auto fill = [&](double* arr)
+        {
+            for (int i=0;i<12;++i)
+            {
+                const std::string key = "b_"+std::to_string(i);
+                if (node[key]) arr[i] = node[key].as<double>();
+            }
+        };
+
+        if      (reg=="background") fill(gAmp.bkg);
+        else if (reg==wantSig)      fill(gAmp.sig);
+    }
+    return true;
+}
 
 inline double evalPW(std::size_t idx,
                      double th, double phi_h, double phi_R1)
@@ -129,7 +159,7 @@ private:
     std::vector<double> purityBufs;
     Int_t   MCmatch {};
     Int_t   truepid_1{}, truepid_2{}, trueparentpid_1{}, trueparentpid_2{}, truepid_21{}, truepid_22{};
-    Double_t phi_h_val{}, phi_R1_val{}, th_val{}, M2_val{};
+    Double_t phi_h_val{}, phi_R1_val{}, th_val{}, truephi_h_val{}, truephi_R1_val{}, trueth_val{}, M2_val{};
 };
 
 // ─── constructor ────────────────────────────────────────────
@@ -181,6 +211,9 @@ AsymmetryPW::AsymmetryPW(const char* r, const char* t, const char* p, const char
     tree->SetBranchAddress("phi_h",     &phi_h_val);
     tree->SetBranchAddress("phi_R1",    &phi_R1_val);
     tree->SetBranchAddress("th",        &th_val);
+    tree->SetBranchAddress("truephi_h",     &truephi_h_val);
+    tree->SetBranchAddress("truephi_R1",    &truephi_R1_val);
+    tree->SetBranchAddress("trueth",        &trueth_val);
     tree->SetBranchAddress("M2",        &M2_val);
     // truth PIDs (only needed for the cuts below)
     tree->SetBranchAddress("truepid_1",  &truepid_1);
@@ -232,6 +265,7 @@ std::string AsymmetryPW::buildMod(const std::string& pref, bool numeric, const s
 
 // ─── main loop ───────────────────────────────────────────────
 void AsymmetryPW::Loop() {
+    gRandom->SetSeed(0);
     gSystem->mkdir(outDir_.c_str(), true);
     std::ofstream yaml(outDir_ + "/" + gOutputFilename);
     yaml << "results:\n";
@@ -267,7 +301,7 @@ void AsymmetryPW::Loop() {
         double mod = 0.0;
         const double* A = signal ? gAmp.sig : gAmp.bkg;
         for (size_t k = 0; k < termList_.size(); ++k) {
-            mod += A[k] * evalPW(k, th_val, phi_h_val, phi_R1_val);
+            mod += A[k] * evalPW(k, trueth_val, truephi_h_val, truephi_R1_val);
         }
         double pPlus = 0.5 * (1.0 + std::clamp(mod, -1.0, 1.0));
         hel.setVal( (gRandom->Rndm() < pPlus) ? 1.0 : -1.0 );
@@ -454,4 +488,20 @@ void injectAsymmetry(const char* input, const char* tree, const char* pair, cons
     AsymmetryPW job(input, tree, pair, outDir);
     job.Loop();
 }
+
+void injectAsymmetry(const char* input,
+                     const char* tree,
+                     const char* pair,
+                     const char* outDir,
+                     const char* yamlPath = nullptr)   // <‑‑ new, optional
+{
+    // optionally override the hard‑coded amplitudes
+    if (yamlPath && yamlPath[0])
+        loadAsymmetriesFromYaml(yamlPath, pair);
+
+    gSystem->mkdir(outDir, true);
+    AsymmetryPW job(input, tree, pair, outDir);
+    job.Loop();
+}
+
 
