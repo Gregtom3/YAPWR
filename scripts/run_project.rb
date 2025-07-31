@@ -16,7 +16,7 @@ VOLATILE_TREE_NAME = 'dihadron_cuts_noPmin'
 # ------------------------------------------------------------------
 #  CLI parsing
 # ------------------------------------------------------------------
-options = { append: false, maxEntries: nil, maxFiles: nil, slurm: false, is_running_on_slurm: false,   doAll: false }
+options = { append: false, maxEntries: 100000000, maxFiles: nil, slurm: false, is_running_on_slurm: false,   doAll: false }
 optlist  = []                                     # remember original flags
 
 parser = OptionParser.new do |opts|
