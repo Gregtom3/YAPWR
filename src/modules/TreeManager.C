@@ -81,7 +81,7 @@ void loadEntryList(TTree* tree, const char* yamlPath, bool useTrueVariable = fal
 
     // 4) create entry list
     TString tmpName = Form("elist_tmp_%s", pairKey.c_str());
-    Long64_t nToScan = maxEntries > 0 ? maxEntries : 0; // 0 = all
+    Long64_t nToScan = maxEntries > 0 ? maxEntries : 100000000; // big number = all
     tree->Draw(Form(">>%s", tmpName.Data()), cutExpr.c_str(), "entrylist", nToScan, 0);
 
     auto* tmp = static_cast<TEntryList*>(gDirectory->Get(tmpName));

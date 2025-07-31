@@ -72,6 +72,7 @@ void baryonContamination(const char* filePath, const char* treeName, const char*
 
     // Loop entries
     Long64_t nEntries = t->GetEntries("");
+
     Long64_t nEntries_good = t->GetEntries("MCmatch==1");
     for (Long64_t i = 0; i < nEntries; ++i) {
         Long64_t entry = elist ? elist->GetEntry(i) : i;
