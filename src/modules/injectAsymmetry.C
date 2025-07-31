@@ -27,75 +27,84 @@ static std::string gBackgroundRegion = "M2>0.2&&M2<0.4";
 static std::string gFullRegion = "th>-9999";
 static std::string gOutputFilename = "asymmetryInjection_results.yaml";
 
-inline std::string pad4(int n)
-{
+inline std::string pad4(int n) {
     std::ostringstream s;
     s << std::setw(4) << std::setfill('0') << n;
     return s.str();
 }
 
 struct InjectAmp {
-    double sig[12];  
+    double sig[12];
     double bkg[12];
 } gAmp = {
-    /* sig */ { 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
-                0.1, 0.1, 0.1, 0.1, 0.1, 0.1},
-    /* bkg */ { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0}   // by default no background modulation
+    /* sig */ {0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1},
+    /* bkg */ {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0} // by default no background modulation
 };
 
-static bool loadAsymmetriesFromYaml(const std::string& ypath,
-                                    const std::string& pair)
-{
+static bool loadAsymmetriesFromYaml(const std::string& ypath, const std::string& pair) {
     YAML::Node root;
-    try         { root = YAML::LoadFile(ypath); }
-    catch (...) { std::cerr<<"YAML load failed: "<<ypath<<"\n"; return false; }
+    try {
+        root = YAML::LoadFile(ypath);
+    } catch (...) {
+        std::cerr << "YAML load failed: " << ypath << "\n";
+        return false;
+    }
 
-    if (!root["results"] || !root["results"].IsSequence()) return false;
+    if (!root["results"] || !root["results"].IsSequence())
+        return false;
 
-    const bool isPi0 = (pair=="piplus_pi0" || pair=="piminus_pi0");
+    const bool isPi0 = (pair == "piplus_pi0" || pair == "piminus_pi0");
     const std::string wantSig = isPi0 ? "signal_purity_1_1" : "signal";
 
-    for (const auto& node : root["results"])
-    {
-        if (!node["region"]) continue;
+    for (const auto& node : root["results"]) {
+        if (!node["region"])
+            continue;
         const std::string reg = node["region"].as<std::string>();
 
-        auto fill = [&](double* arr)
-        {
-            for (int i=0;i<12;++i)
-            {
-                const std::string key = "b_"+std::to_string(i);
-                if (node[key]) arr[i] = node[key].as<double>();
+        auto fill = [&](double* arr) {
+            for (int i = 0; i < 12; ++i) {
+                const std::string key = "b_" + std::to_string(i);
+                if (node[key])
+                    arr[i] = node[key].as<double>();
             }
         };
 
-        if      (reg=="background") fill(gAmp.bkg);
-        else if (reg==wantSig)      fill(gAmp.sig);
+        if (reg == "background")
+            fill(gAmp.bkg);
+        else if (reg == wantSig)
+            fill(gAmp.sig);
     }
     return true;
 }
 
-inline double evalPW(std::size_t idx,
-                     double th, double phi_h, double phi_R1)
-{
+inline double evalPW(std::size_t idx, double th, double phi_h, double phi_R1) {
     switch (idx) {
-      case 0:  return std::sin(th)*std::sin(phi_h - phi_R1);
-      case 1:  return std::sin(2*th)*std::sin(phi_h - phi_R1);
-      case 2:  return std::sin(th)*std::sin(th)*
-                        std::sin(2*phi_h - 2*phi_R1);
-      case 3:  return std::sin(phi_h);
-      case 4:  return std::sin(th)*std::sin(2*phi_h - phi_R1);
-      case 5:  return std::cos(th)*std::sin(phi_h);
-      case 6:  return std::sin(th)*std::sin(phi_R1);
-      case 7:  return std::sin(th)*std::sin(th)*
-                        std::sin(3*phi_h - 2*phi_R1);
-      case 8:  return std::sin(2*th)*std::sin(2*phi_h - phi_R1);
-      case 9:  return 0.5*(3*std::cos(th)*std::cos(th) - 1)*std::sin(phi_h);
-      case 10: return std::sin(2*th)*std::sin(phi_R1);
-      case 11: return std::sin(th)*std::sin(th)*
-                        std::sin(-phi_h + 2*phi_R1);
-      default: return 0.0;
+    case 0:
+        return std::sin(th) * std::sin(phi_h - phi_R1);
+    case 1:
+        return std::sin(2 * th) * std::sin(phi_h - phi_R1);
+    case 2:
+        return std::sin(th) * std::sin(th) * std::sin(2 * phi_h - 2 * phi_R1);
+    case 3:
+        return std::sin(phi_h);
+    case 4:
+        return std::sin(th) * std::sin(2 * phi_h - phi_R1);
+    case 5:
+        return std::cos(th) * std::sin(phi_h);
+    case 6:
+        return std::sin(th) * std::sin(phi_R1);
+    case 7:
+        return std::sin(th) * std::sin(th) * std::sin(3 * phi_h - 2 * phi_R1);
+    case 8:
+        return std::sin(2 * th) * std::sin(2 * phi_h - phi_R1);
+    case 9:
+        return 0.5 * (3 * std::cos(th) * std::cos(th) - 1) * std::sin(phi_h);
+    case 10:
+        return std::sin(2 * th) * std::sin(phi_R1);
+    case 11:
+        return std::sin(th) * std::sin(th) * std::sin(-phi_h + 2 * phi_R1);
+    default:
+        return 0.0;
     }
 }
 
@@ -129,19 +138,17 @@ struct TermDesc {
     std::string modulation; // P_lm * sin(...)
 };
 
-inline bool truthCutOK(const std::string& pair,
-                       int pid1, int pid2, int parentpid1, int parentpid2, int pid21, int pid22)
-{
+inline bool truthCutOK(const std::string& pair, int pid1, int pid2, int parentpid1, int parentpid2, int pid21, int pid22) {
     if (pair == "piplus_piminus")
-        return (pid1== 211 && pid2== -211);
+        return (pid1 == 211 && pid2 == -211);
     if (pair == "piplus_pi0")
-        return (pid1== 211 && pid21==22 && pid22==22 && parentpid2==111);
+        return (pid1 == 211 && pid21 == 22 && pid22 == 22 && parentpid2 == 111);
     if (pair == "piminus_pi0")
-        return (pid1==-211 && pid21==22 && pid22==22 && parentpid2==111);
+        return (pid1 == -211 && pid21 == 22 && pid22 == 22 && parentpid2 == 111);
     if (pair == "piplus_piplus")
-        return (pid1== 211 && pid2== 211);
+        return (pid1 == 211 && pid2 == 211);
     if (pair == "piminus_piminus")
-        return (pid1==-211 && pid2==-211);
+        return (pid1 == -211 && pid2 == -211);
     return false;
 }
 
@@ -164,8 +171,8 @@ private:
     std::vector<TermDesc> termList_;
     std::vector<std::string> purityBranches_; // purity_* names
     std::vector<double> purityBufs;
-    Int_t   MCmatch {};
-    Int_t   truepid_1{}, truepid_2{}, trueparentpid_1{}, trueparentpid_2{}, truepid_21{}, truepid_22{};
+    Int_t MCmatch{};
+    Int_t truepid_1{}, truepid_2{}, trueparentpid_1{}, trueparentpid_2{}, truepid_21{}, truepid_22{};
     Double_t phi_h_val{}, phi_R1_val{}, th_val{}, truephi_h_val{}, truephi_R1_val{}, trueth_val{}, M2_val{};
 };
 
@@ -202,7 +209,7 @@ AsymmetryPW::AsymmetryPW(const char* r, const char* t, const char* p, const char
 
         for (int i = 0; i < bl->GetEntries(); ++i) {
             const char* nm = bl->At(i)->GetName();
-            
+
             // select purity_X_Y but skip purity_err_X_Y
             if (strncmp(nm, "purity_", 7) == 0 && strncmp(nm, "purity_err_", 11) != 0) {
                 // push only the first time we encounter this name
@@ -214,19 +221,19 @@ AsymmetryPW::AsymmetryPW(const char* r, const char* t, const char* p, const char
         }
     }
     buildTerms();
-    tree->SetBranchAddress("MCmatch",   &MCmatch);
-    tree->SetBranchAddress("phi_h",     &phi_h_val);
-    tree->SetBranchAddress("phi_R1",    &phi_R1_val);
-    tree->SetBranchAddress("th",        &th_val);
-    tree->SetBranchAddress("truephi_h",     &truephi_h_val);
-    tree->SetBranchAddress("truephi_R1",    &truephi_R1_val);
-    tree->SetBranchAddress("trueth",        &trueth_val);
-    tree->SetBranchAddress("M2",        &M2_val);
+    tree->SetBranchAddress("MCmatch", &MCmatch);
+    tree->SetBranchAddress("phi_h", &phi_h_val);
+    tree->SetBranchAddress("phi_R1", &phi_R1_val);
+    tree->SetBranchAddress("th", &th_val);
+    tree->SetBranchAddress("truephi_h", &truephi_h_val);
+    tree->SetBranchAddress("truephi_R1", &truephi_R1_val);
+    tree->SetBranchAddress("trueth", &trueth_val);
+    tree->SetBranchAddress("M2", &M2_val);
     // truth PIDs (only needed for the cuts below)
-    tree->SetBranchAddress("truepid_1",  &truepid_1);
-    tree->SetBranchAddress("truepid_2",  &truepid_2);
-    tree->SetBranchAddress("trueparentpid_1",  &trueparentpid_1);
-    tree->SetBranchAddress("trueparentpid_2",  &trueparentpid_2);
+    tree->SetBranchAddress("truepid_1", &truepid_1);
+    tree->SetBranchAddress("truepid_2", &truepid_2);
+    tree->SetBranchAddress("trueparentpid_1", &trueparentpid_1);
+    tree->SetBranchAddress("trueparentpid_2", &trueparentpid_2);
     tree->SetBranchAddress("truepid_21", &truepid_21);
     tree->SetBranchAddress("truepid_22", &truepid_22);
     purityBufs.reserve(purityBranches_.size());
@@ -278,11 +285,11 @@ void AsymmetryPW::Loop() {
     yaml << "results:\n";
 
     // observables
-    RooRealVar  phi_h ("phi_h" , "phi_h" , -TMath::Pi(),  TMath::Pi());
-    RooRealVar  phi_R1("phi_R1", "phi_R1", -TMath::Pi(),  TMath::Pi());
-    RooRealVar  th    ("th"    , "th"    ,  0,            TMath::Pi());
-    RooRealVar  M2    ("M2"    , "M2"    ,  0,            10);
-    RooRealVar  hel   ("hel"   , "hel"   , -1,             1);
+    RooRealVar phi_h("phi_h", "phi_h", -TMath::Pi(), TMath::Pi());
+    RooRealVar phi_R1("phi_R1", "phi_R1", -TMath::Pi(), TMath::Pi());
+    RooRealVar th("th", "th", 0, TMath::Pi());
+    RooRealVar M2("M2", "M2", 0, 10);
+    RooRealVar hel("hel", "hel", -1, 1);
 
     // create RooRealVars for every purity_N_M
     std::vector<RooRealVar*> purityVars;
@@ -298,12 +305,13 @@ void AsymmetryPW::Loop() {
     // ------------------------------------------------------
     // loop over input tree once
     // ------------------------------------------------------
-    for (Long64_t i=0;i<tree->GetEntries();++i) {
+    for (Long64_t i = 0; i < tree->GetEntries(); ++i) {
         tree->GetEntry(i);
-        if(MCmatch!=1) continue;
+        if (MCmatch != 1)
+            continue;
         // skip events failing MCmatch/TruthCut if you don’t want them in dataset
-        bool signal = (MCmatch==1) &&
-                      truthCutOK(pair_, truepid_1,truepid_2, trueparentpid_1, trueparentpid_2, truepid_21,truepid_22);
+        bool signal =
+            (MCmatch == 1) && truthCutOK(pair_, truepid_1, truepid_2, trueparentpid_1, trueparentpid_2, truepid_21, truepid_22);
 
         double mod = 0.0;
         const double* A = signal ? gAmp.sig : gAmp.bkg;
@@ -311,21 +319,21 @@ void AsymmetryPW::Loop() {
             mod += A[k] * evalPW(k, trueth_val, truephi_h_val, truephi_R1_val);
         }
         double pPlus = 0.5 * (1.0 + std::clamp(mod, -1.0, 1.0));
-        hel.setVal( (gRandom->Rndm() < pPlus) ? 1.0 : -1.0 );
-    
+        hel.setVal((gRandom->Rndm() < pPlus) ? 1.0 : -1.0);
+
         // copy the remaining observables
-        phi_h .setVal(phi_h_val);
+        phi_h.setVal(phi_h_val);
         phi_R1.setVal(phi_R1_val);
-        th    .setVal(th_val);
-        M2    .setVal(M2_val);
-    
+        th.setVal(th_val);
+        M2.setVal(M2_val);
+
         // copy purity branches if you need them in fits
-        for (size_t ip=0; ip<purityVars.size(); ++ip)
-            purityVars[ip]->setVal(purityBufs[ip]);  
-    
+        for (size_t ip = 0; ip < purityVars.size(); ++ip)
+            purityVars[ip]->setVal(purityBufs[ip]);
+
         full.add(obs);
     }
-        
+
     // prepare data sets
     RooDataSet* dBack = nullptr;
     RooDataSet* dSign = nullptr;
@@ -496,13 +504,8 @@ void injectAsymmetry(const char* input, const char* tree, const char* pair, cons
     job.Loop();
 }
 
-void injectAsymmetry(const char* input,
-                     const char* tree,
-                     const char* pair,
-                     const char* outDir,
-                     const char* yamlPath = nullptr,
-                     const int   trial = 0) 
-{
+void injectAsymmetry(const char* input, const char* tree, const char* pair, const char* outDir, const char* yamlPath = nullptr,
+                     const int trial = 0) {
     // optionally override the hard‑coded amplitudes
     if (yamlPath && yamlPath[0])
         loadAsymmetriesFromYaml(yamlPath, pair);
@@ -513,5 +516,3 @@ void injectAsymmetry(const char* input,
     AsymmetryPW job(input, tree, pair, outDir);
     job.Loop();
 }
-
-

@@ -5,11 +5,41 @@
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 
-const std::vector<std::string>& keepBranches = {"x",         "Q2",         "y",      "hel",   "eps",     "Mh",     "M2",
-                                                "Pol",       "phi_h",      "phi_R1", "th",    "z",       "xF",     "Mx", "MCmatch",
-                                                "pTtot",     "truex",      "trueQ2", "truey", "trueeps", "trueMh", "trueM2",
-                                                "truephi_h", "truephi_R1", "trueth", "truez", "truexF",  "trueMx", "truepTtot",
-                                                "truepid_1", "truepid_2", "truepid_21", "truepid_22", "trueparentpid_1","trueparentpid_2"};
+const std::vector<std::string>& keepBranches = {"x",
+                                                "Q2",
+                                                "y",
+                                                "hel",
+                                                "eps",
+                                                "Mh",
+                                                "M2",
+                                                "Pol",
+                                                "phi_h",
+                                                "phi_R1",
+                                                "th",
+                                                "z",
+                                                "xF",
+                                                "Mx",
+                                                "MCmatch",
+                                                "pTtot",
+                                                "truex",
+                                                "trueQ2",
+                                                "truey",
+                                                "trueeps",
+                                                "trueMh",
+                                                "trueM2",
+                                                "truephi_h",
+                                                "truephi_R1",
+                                                "trueth",
+                                                "truez",
+                                                "truexF",
+                                                "trueMx",
+                                                "truepTtot",
+                                                "truepid_1",
+                                                "truepid_2",
+                                                "truepid_21",
+                                                "truepid_22",
+                                                "trueparentpid_1",
+                                                "trueparentpid_2"};
 
 void filterTree(const char* inputPath, const char* treeName, const char* configPath, const char* pairName, const char* outputDir,
                 Int_t maxEntries = -1) {
@@ -33,8 +63,9 @@ void filterTree(const char* inputPath, const char* treeName, const char* configP
     if (keepBranches.empty()) {
         std::cerr << "WARNING: keepBranches is empty; output tree will be empty\n";
     }
-    for (const auto& br : keepBranches){
-        if (!isMC && br.find("true") != std::string::npos) continue; // Skip true data for non-MC
+    for (const auto& br : keepBranches) {
+        if (!isMC && br.find("true") != std::string::npos)
+            continue; // Skip true data for non-MC
         inT->SetBranchStatus(br.c_str(), 1);
     }
     // 3) Prepare output file *first* and cd into it

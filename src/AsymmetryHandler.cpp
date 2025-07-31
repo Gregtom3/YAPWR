@@ -1,21 +1,23 @@
 #include "AsymmetryHandler.h"
 #include "Logger.h"
-#include <TMatrixD.h>
-#include <TVectorD.h>
 #include <TDecompChol.h>
 #include <TDecompLU.h>
+#include <TMatrixD.h>
+#include <TVectorD.h>
 
 static TMatrixD makeLTL_FirstDiff(int N) {
-    TMatrixD LTL(N, N); LTL.Zero();
-    if (N <= 1) return LTL;
+    TMatrixD LTL(N, N);
+    LTL.Zero();
+    if (N <= 1)
+        return LTL;
     // Each first-difference contributes a 2×2 block:
     //  [ +1  -1 ]
     //  [ -1  +1 ]
     for (int i = 0; i < N - 1; ++i) {
-        LTL(i,   i  ) +=  1.0;
-        LTL(i,   i+1) += -1.0;
-        LTL(i+1, i  ) += -1.0;
-        LTL(i+1, i+1) +=  1.0;
+        LTL(i, i) += 1.0;
+        LTL(i, i + 1) += -1.0;
+        LTL(i + 1, i) += -1.0;
+        LTL(i + 1, i + 1) += 1.0;
     }
     return LTL;
 }
@@ -24,8 +26,7 @@ static TMatrixD makeLTL_FirstDiff(int N) {
 // M : R×N  (rows=reco, cols=true)
 // y : length R  (A_rec)
 // lambda >= 0
-static TVectorD solveTikhonovFirstDiff(const TMatrixD& M, const TVectorD& y, double lambda)
-{
+static TVectorD solveTikhonovFirstDiff(const TMatrixD& M, const TVectorD& y, double lambda) {
     const int R = M.GetNrows();
     const int N = M.GetNcols();
 
@@ -37,7 +38,7 @@ static TVectorD solveTikhonovFirstDiff(const TMatrixD& M, const TVectorD& y, dou
         TMatrixD LTL = makeLTL_FirstDiff(N);
         for (int i = 0; i < N; ++i)
             for (int j = 0; j < N; ++j)
-                A(i,j) += lambda * LTL(i,j);
+                A(i, j) += lambda * LTL(i, j);
     }
 
     // rhs = M^T y
@@ -49,13 +50,15 @@ static TVectorD solveTikhonovFirstDiff(const TMatrixD& M, const TVectorD& y, dou
     if (ok) {
         // TDecompChol::Solve(const TVectorD&, Bool_t&) returns the solution
         TVectorD x = chol.Solve(rhs, ok);
-        if (ok) return x;
+        if (ok)
+            return x;
     }
     // Fallback: LU — use the in-place Solve that returns Bool_t
     TDecompLU lu(A);
     ok = lu.Decompose();
-    TVectorD x = rhs;                 // copy RHS; LU will overwrite with solution
-    if (ok) ok = lu.Solve(x);         // returns Bool_t; x holds solution on success
+    TVectorD x = rhs; // copy RHS; LU will overwrite with solution
+    if (ok)
+        ok = lu.Solve(x); // returns Bool_t; x holds solution on success
     return x;
 }
 
@@ -131,7 +134,7 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
     // First initialize the Asymmetry map, logging all asymmetry values/statistical errors
     initializeAsymmetryMaps(region, termIndex);
     const std::unordered_map<std::string, double> origAsymValue = asymValue_; // save unaltered
-    
+
     // Second, initialize the map for the full bin migration
     std::unordered_map<std::string, const Result*> allBinMig;
     for (auto& [cfgName, modules] : allResults_)
@@ -148,7 +151,7 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
     fs::path modPath = fs::path("out") / anyCfg.getProjectName() / anyCfg.name / anyCfg.getPionPair() / anyCfg.getMCVersion() /
                        ("module-out___binMigration");
     tmp_bmErr.plotSummary(modPath.string(), /*asFraction=*/true);
-    
+
     // Determination of the systematic errors
     // Loop over each kinematic bin
     for (const std::string& cfgName : sortedCfgNames_) {
@@ -178,7 +181,7 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
             if (auto it = modules.find("binMigration"); it != modules.end())
                 rBinMig = bmErr.getRelativeError(it->second, region, termIndex);
         } else {
-            tmp_bmErr.saveMigrationDataToYaml(modPath.string(),termIndex,origAsymValue);
+            tmp_bmErr.saveMigrationDataToYaml(modPath.string(), termIndex, origAsymValue);
             rBinMig = 0.0; // requested behavior
         }
 
@@ -255,8 +258,8 @@ void AsymmetryHandler::reportAsymmetry(const std::string& region, int termIndex,
         rec.sSys = sSys;
         // Fetch the raw unaltered asymmetry
         auto itAraw = origAsymValue.find(cfgName);
-        rec.A_raw   = (itAraw != origAsymValue.end()) ? itAraw->second : A;
-        
+        rec.A_raw = (itAraw != origAsymValue.end()) ? itAraw->second : A;
+
         rec.rBinMig = rBinMig;
         rec.aBinMig = sBinMig;
         rec.rBary = rBary;
@@ -288,14 +291,14 @@ void AsymmetryHandler::dumpYaml(const std::string& outPath, bool append /* = fal
             << YAML::Key << "runVersion" << YAML::Value << r.runVersion << YAML::Key << "twist" << YAML::Value << r.TWIST << YAML::Key
             << "L" << YAML::Value << r.L << YAML::Key << "M" << YAML::Value << r.M << YAML::Key << "modulation" << YAML::Value
             << r.modulationLatex << YAML::Key << "region" << YAML::Value << r.region << YAML::Key << r.binVar << YAML::Value
-            << r.binVal << YAML::Key << "A" << YAML::Value << r.A << YAML::Key << "A_raw" << YAML::Value << r.A_raw << YAML::Key << "sStat" << YAML::Value << r.sStat << YAML::Key
-            << "sSys" << YAML::Value << r.sSys << YAML::Key << "systematics" << YAML::Value << YAML::BeginMap << YAML::Key
-            << "binMigration" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rBinMig << r.aBinMig << YAML::EndSeq << YAML::Key
-            << "baryonContamination" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rBary << r.aBary << YAML::EndSeq << YAML::Key
-            << "particleMisID" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rMisID << r.aMisID << YAML::EndSeq << YAML::Key
-            << "sidebandRegion" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rSreg << r.aSreg << YAML::EndSeq << YAML::Key
-            << "purityBinning" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rPbin << r.aPbin << YAML::EndSeq << YAML::Key
-            << "normalization" << YAML::Value << YAML::BeginMap;
+            << r.binVal << YAML::Key << "A" << YAML::Value << r.A << YAML::Key << "A_raw" << YAML::Value << r.A_raw << YAML::Key
+            << "sStat" << YAML::Value << r.sStat << YAML::Key << "sSys" << YAML::Value << r.sSys << YAML::Key << "systematics"
+            << YAML::Value << YAML::BeginMap << YAML::Key << "binMigration" << YAML::Value << YAML::Flow << YAML::BeginSeq << r.rBinMig
+            << r.aBinMig << YAML::EndSeq << YAML::Key << "baryonContamination" << YAML::Value << YAML::Flow << YAML::BeginSeq
+            << r.rBary << r.aBary << YAML::EndSeq << YAML::Key << "particleMisID" << YAML::Value << YAML::Flow << YAML::BeginSeq
+            << r.rMisID << r.aMisID << YAML::EndSeq << YAML::Key << "sidebandRegion" << YAML::Value << YAML::Flow << YAML::BeginSeq
+            << r.rSreg << r.aSreg << YAML::EndSeq << YAML::Key << "purityBinning" << YAML::Value << YAML::Flow << YAML::BeginSeq
+            << r.rPbin << r.aPbin << YAML::EndSeq << YAML::Key << "normalization" << YAML::Value << YAML::BeginMap;
         for (const auto& [comp, rel] : r.rNorm) {
             out << YAML::Key << comp << YAML::Value << YAML::Flow << YAML::BeginSeq << rel << r.aNorm.at(comp) << YAML::EndSeq;
         }
@@ -363,22 +366,22 @@ void AsymmetryHandler::unfoldAsymmetryViaBinMigration_(const std::unordered_map<
     LOG_INFO(os.str());
 }
 
-void AsymmetryHandler::unfoldAsymmetryViaBinMigrationSVD_(
-    const std::unordered_map<std::string, const Result*>& allBinMig) const
-{
+void AsymmetryHandler::unfoldAsymmetryViaBinMigrationSVD_(const std::unordered_map<std::string, const Result*>& allBinMig) const {
     const int N = static_cast<int>(sortedCfgNames_.size());
-    if (N <= 0) return;
+    if (N <= 0)
+        return;
 
     // Forward matrix: rows=reco, cols=true (A_rec = M * A_true)
     const Config& anyCfg = configMap_.at(sortedCfgNames_.front());
     BinMigrationError bmErr(anyCfg, configMap_, sortedCfgNames_, asymValue_, allBinMig);
-    TMatrixD M = bmErr.getMigrationMatrix_RecoRows_TrueCols();   // N×N typically
+    TMatrixD M = bmErr.getMigrationMatrix_RecoRows_TrueCols(); // N×N typically
 
     // y = A_rec in reco-bin order
     TVectorD A_rec(N);
-    for (int j = 0; j < N; ++j) A_rec(j) = asymValue_.at(sortedCfgNames_[j]);
+    for (int j = 0; j < N; ++j)
+        A_rec(j) = asymValue_.at(sortedCfgNames_[j]);
 
-    const double lambda = Constants::INVERSION_LAMBDA; 
+    const double lambda = Constants::INVERSION_LAMBDA;
 
     TVectorD A_true = solveTikhonovFirstDiff(M, A_rec, lambda);
 
