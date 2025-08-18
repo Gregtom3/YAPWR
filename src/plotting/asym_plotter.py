@@ -55,7 +55,7 @@ DEFAULT_COLORS = {
     "piplus_piminus":  "black",
     "piminus_pi0":     "red",
     "piplus_piplus":   "green",
-    "piminus_piminus": "red",
+    "piminus_piminus": "purple",
 }
 
 PAIR_LABEL = {
@@ -413,7 +413,7 @@ def plotSysFig(yamlData,
     # nice tick labels
     ax_bot.set_xticks(bar_x)
     base_label = xlabel.split('(')[0] if '(' in xlabel else xlabel
-    if '$' in base_label:
+    if '$' in base_label and base_label[-1]!='$':
         base_label += '$'
     ax_bot.set_xticklabels([f"{base_label}={x:.3g}" for x in x_vals],
                            rotation=45, ha='right', fontsize=BOT_XAXIS_FONT_SIZE)

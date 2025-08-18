@@ -70,9 +70,9 @@ void ParticleMisidentificationProcessor::plotSummary(const std::string& moduleOu
     }
 
     YAML::Node root = YAML::LoadFile(yamlPath.string());
-    int totalEntries = root["total_entries"].as<int>();
+    const int totalEntries = root["total_entries"] ? root["total_entries"].as<int>() : 0;
 
-    // 1) choose which sections to draw
+    // choose which sections to draw
     std::vector<std::string> sections = {"truepid_e", "truepid_1"};
     if (!cfg.contains_pi0()) {
         sections.push_back("truepid_2");
@@ -81,112 +81,132 @@ void ParticleMisidentificationProcessor::plotSummary(const std::string& moduleOu
         sections.push_back("truepid_22");
     }
 
-    // Colors: gray for “Correct” then a palette for mis‑IDs
+    // Colors: gray for "Correct" then a palette for mis-IDs
     static const Color_t sliceColors[6] = {kGray, kRed, kBlue, kGreen + 2, kMagenta, kCyan};
 
-    // Unified PID → ParticleInfo
+    // Unified PID -> ParticleInfo
     auto const& pmap = Constants::particlePalette();
 
     for (auto const& sec : sections) {
-        if (!root[sec])
-            continue;
+        if (!root[sec]) continue;
 
-        // 1) Read all recon‐PID counts for this true‐PID section
+        // 1) Read all recon-PID counts for this true-PID section
         std::map<int, int> counts;
         for (auto const& kv : root[sec]) {
-            int pid = std::stoi(kv.first.as<std::string>());
+            int pid = 0;
+            try {
+                pid = std::stoi(kv.first.as<std::string>());
+            } catch (...) {
+                continue; // skip malformed keys
+            }
             counts[pid] = kv.second.as<int>();
         }
+        if (counts.empty()) {
+            // Make a simple "no entries" canvas so downstream expects files to exist
+            std::string cName = "c_misid_" + sec;
+            TCanvas* c = new TCanvas(cName.c_str(), "", 800, 600);
+            gKeepAlive.push_back(c);
+            c->cd();
 
-        // 2) Identify which PID is “correct”:
-        //    - for truepid_e: correct PID = 11 (electron)
-        //    - for truepid_1 / truepid_2: correct PID = first/second pion of the pair
-        //    - otherwise: take the PID with the largest count
+            TLatex* txt = new TLatex();
+            gKeepAlive.push_back(txt);
+            txt->SetNDC(true);
+            txt->SetTextFont(42);
+            txt->SetTextSize(0.05);
+            txt->SetTextAlign(22);
+            txt->DrawLatex(0.5, 0.55, "No entries for this section");
+
+            std::string base = (dir / ("misid_" + sec)).string();
+            c->SaveAs((base + ".png").c_str());
+            c->SaveAs((base + ".pdf").c_str());
+            continue;
+        }
+
+        // 2) Identify which PID is "correct"
         int correctPid = 0;
         if (sec == "truepid_e") {
             correctPid = 11;
         } else if (sec == "truepid_1") {
-            // first hadron of the dihadron pair
             auto p = cfg.getPionPair();
             std::string tex = Constants::firstHadronLatex(p);
-            // reverse‐lookup: find the PID in pmap by matching texName
             for (auto const& pr : pmap) {
-                if (pr.second.texName == tex) {
-                    correctPid = pr.first;
-                    break;
-                }
+                if (pr.second.texName == tex) { correctPid = pr.first; break; }
             }
         } else if (sec == "truepid_2") {
             auto p = cfg.getPionPair();
             std::string tex = Constants::secondHadronLatex(p);
             for (auto const& pr : pmap) {
-                if (pr.second.texName == tex) {
-                    correctPid = pr.first;
-                    break;
-                }
+                if (pr.second.texName == tex) { correctPid = pr.first; break; }
             }
         }
-        // fallback: the PID with the max count
         if (correctPid == 0) {
-            correctPid = std::max_element(counts.begin(), counts.end(), [](auto& a, auto& b) {
-                             return a.second < b.second;
-                         })->first;
+            // fallback: PID with the max count
+            correctPid = std::max_element(counts.begin(), counts.end(),
+                                          [](auto& a, auto& b){ return a.second < b.second; })->first;
         }
-        int correctCount = counts[correctPid];
+        int correctCount = 0;
+        if (auto itc = counts.find(correctPid); itc != counts.end()) {
+            correctCount = std::max(0, itc->second);
+        }
 
-        // 3) Build a vector of mis‑ID counts (everything except correctPid)
-        std::vector<std::pair<int, int>> mis;
+        // 3) Collect top mis-IDs (exclude correctPid), top-5
+        std::vector<std::pair<int,int>> mis;
+        mis.reserve(counts.size());
         for (auto& pr : counts) {
-            if (pr.first == correctPid)
-                continue;
-            mis.push_back(pr);
+            if (pr.first == correctPid) continue;
+            mis.push_back({pr.first, std::max(0, pr.second)});
         }
-        std::sort(mis.begin(), mis.end(), [](auto& a, auto& b) {
-            return a.second > b.second;
-        });
-        if (mis.size() > 5)
-            mis.resize(5);
+        std::sort(mis.begin(), mis.end(), [](auto& a, auto& b){ return a.second > b.second; });
+        if (mis.size() > 5) mis.resize(5);
 
-        // 4) Build the pie’s values & labels
+        // 4) Build pie values and labels (sanitize)
         std::vector<double> vals;
         std::vector<std::string> labels;
 
-        // first slice = correct
-        vals.push_back(correctCount);
+        // first slice: correct
+        vals.push_back(static_cast<double>(correctCount));
         labels.push_back("Correct");
 
-        // next slices = top mis‑IDs with percentages
         for (auto& pr : mis) {
-            int pid = pr.first, cnt = pr.second;
-            vals.push_back(cnt);
+            const int pid = pr.first;
+            const int cnt = std::max(0, pr.second);
+            vals.push_back(static_cast<double>(cnt));
 
-            double pct = 100.0 * cnt / totalEntries;
-            std::ostringstream oss;
-            oss << std::fixed << std::setprecision(3) << pct;
+            double pct = (totalEntries > 0) ? (100.0 * cnt / static_cast<double>(totalEntries)) : 0.0;
+            if (!std::isfinite(pct) || pct < 0) pct = 0.0;
 
             auto it = pmap.find(pid);
             std::string name = (it != pmap.end()) ? it->second.texName : std::to_string(pid);
+
+            std::ostringstream oss;
+            oss << std::fixed << std::setprecision(3) << pct;
             labels.push_back(name + " (" + oss.str() + "%)");
         }
 
-        // 5) Prepare the canvas
+        // sum check; if all zero, skip TPie and render a message
+        double sum = 0.0;
+        for (double v : vals) {
+            if (!std::isfinite(v) || v < 0) v = 0.0;
+            sum += v;
+        }
+
+        // 5) Prepare canvas
         std::string cName = "c_misid_" + sec;
         TCanvas* c = new TCanvas(cName.c_str(), "", 800, 600);
         gKeepAlive.push_back(c);
         c->cd();
 
-        // 6) Draw the header: “Particle MisID: True PID of <X>”
-        // Header text
-        std::string suffix = sec.substr(8); // e.g. "e", "1", "21", etc.
+        // 6) Build header text
+        const std::string suffix = (sec.size() > 8) ? sec.substr(8) : "";
         std::string trueLabel;
         if (suffix == "e") {
-            trueLabel = pmap.at(11).texName;
+            auto itE = pmap.find(11);
+            trueLabel = (itE != pmap.end()) ? itE->second.texName : "e";
         } else if (suffix == "1") {
             trueLabel = Constants::firstHadronLatex(cfg.getPionPair());
         } else if (suffix == "2") {
             trueLabel = Constants::secondHadronLatex(cfg.getPionPair());
         } else {
-            // numeric suffix
             try {
                 int tok = std::stoi(suffix);
                 auto it2 = pmap.find(tok);
@@ -195,31 +215,71 @@ void ParticleMisidentificationProcessor::plotSummary(const std::string& moduleOu
                 trueLabel = suffix;
             }
         }
-        std::string header = "Particle MisID: True PID of " + trueLabel;
-        TLatex latex;
-        latex.SetTextFont(42);
-        latex.SetTextSize(0.05);
-        latex.SetTextAlign(13);
+        const std::string header = "Particle MisID: True PID of " + trueLabel;
 
-        // 7) Draw the pie
+        // If no data to show, draw only the header and a message
+        if (sum <= 0.0) {
+            TLatex* hdr = new TLatex();
+            gKeepAlive.push_back(hdr);
+            hdr->SetNDC(true);
+            hdr->SetTextFont(42);
+            hdr->SetTextSize(0.05);
+            hdr->SetTextAlign(13);
+            hdr->DrawLatex(0.01, 0.98, header.c_str());
+
+            TLatex* msg = new TLatex();
+            gKeepAlive.push_back(msg);
+            msg->SetNDC(true);
+            msg->SetTextFont(42);
+            msg->SetTextSize(0.045);
+            msg->SetTextAlign(22);
+            msg->DrawLatex(0.5, 0.55, "No entries available for this section");
+
+            std::string base = (dir / ("misid_" + sec)).string();
+            c->SaveAs((base + ".png").c_str());
+            c->SaveAs((base + ".pdf").c_str());
+            continue;
+        }
+
+        // 7) Draw pie (sanitized, no MakeLegend)
         TPie* pie = new TPie(("pie_" + sec).c_str(), "", vals.size());
         gKeepAlive.push_back(pie);
-        pie->SetLabelFormat("");
+        pie->SetLabelFormat(""); // hide on-slice labels (legend will carry labels)
         for (size_t i = 0; i < vals.size(); ++i) {
-            pie->SetEntryVal(i, vals[i]);
-            pie->SetEntryLabel(i, labels[i].c_str());
-            pie->SetEntryFillColor(i, sliceColors[i]);
+            const double v = (std::isfinite(vals[i]) && vals[i] >= 0) ? vals[i] : 0.0;
+            pie->SetEntryVal(i, v);
+            pie->SetEntryLabel(i, TString(labels[i])); // force ROOT to own a copy
+            pie->SetEntryFillColor(i, sliceColors[ std::min<size_t>(i, 5) ]);
         }
         pie->SetRadius(0.35);
-        pie->Draw();
-        latex.DrawLatexNDC(0.01, 0.98, header.c_str());
-        // 8) Legend
-        auto leg = pie->MakeLegend();
+        pie->Draw("nol");
+
+        // Header
+        {
+            TLatex* latex = new TLatex();
+            gKeepAlive.push_back(latex);
+            latex->SetNDC(true);
+            latex->SetTextFont(42);
+            latex->SetTextSize(0.05);
+            latex->SetTextAlign(13);
+            latex->DrawLatex(0.01, 0.98, header.c_str());
+        }
+
+        // 8) Manual legend (avoid TPie::MakeLegend paths)
+        TLegend* leg = new TLegend(0.70, 0.66, 0.95, 0.95);
         gKeepAlive.push_back(leg);
-        leg->SetX1(0.70);
-        leg->SetX2(0.95);
-        leg->SetY1(0.66);
-        leg->SetY2(0.95);
+        leg->SetBorderSize(0);
+        leg->SetFillStyle(0);
+        for (size_t i = 0; i < labels.size(); ++i) {
+            // small color box as a swatch
+            TBox* sw = new TBox(0, 0, 0, 0);
+            gKeepAlive.push_back(sw);
+            const auto col = sliceColors[ std::min<size_t>(i, 5) ];
+            sw->SetFillColor(col);
+            sw->SetLineColor(col);
+            leg->AddEntry(sw, labels[i].c_str(), "f");
+        }
+        leg->Draw();
 
         // 9) Save
         std::string base = (dir / ("misid_" + sec)).string();
@@ -227,3 +287,4 @@ void ParticleMisidentificationProcessor::plotSummary(const std::string& moduleOu
         c->SaveAs((base + ".pdf").c_str());
     }
 }
+

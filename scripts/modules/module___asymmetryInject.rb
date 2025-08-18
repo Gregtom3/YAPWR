@@ -47,7 +47,7 @@ class AsymmetryInjectionPWRunner < ModuleRunner
 
     opts_hash[:max_entries] ||= -1
     opts_hash[:jobs]       ||= 4
-    opts_hash[:per_job]    ||= 3
+    opts_hash[:per_job]    ||= 4
     [project, user_cfgs]
   end
 

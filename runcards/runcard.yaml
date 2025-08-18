@@ -7,3 +7,4 @@ modules:
     - particleMisidentification
     - binMigration
     - asymmetry_sideband
+    - asymmetryInject

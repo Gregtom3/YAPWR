@@ -9,7 +9,7 @@ require 'set'
 # ------------------------------------------------------------------
 #  User-constants
 # ------------------------------------------------------------------
-VOLATILE_PROJECT   = 'pipi0-paper-v5-pass2'
+VOLATILE_PROJECT   = 'pipi0-paper-pass2-v6'
 VOLATILE_SUFFIX    = '*merged_cuts_noPmin*'
 VOLATILE_TREE_NAME = 'dihadron_cuts_noPmin'
 
