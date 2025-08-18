@@ -64,7 +64,7 @@ struct TermDesc {
 // ----------------------------------------------------------------
 class AsymmetryPW {
 public:
-    AsymmetryPW(const char* root, const char* tree, const char* pair, const char* out);
+    AsymmetryPW(const char* root, const char* tree, const char* pair, const char* out, const bool extract_FLU = true);
     void Loop();
 
 private:
