@@ -86,7 +86,7 @@ AsymmetryPW::AsymmetryPW(const char* r, const char* t, const char* p, const char
     , treeName_(t)
     , pair_(p)
     , outDir_(o)
-    , extract_FLU_(extract_FLU){
+    , extract_FLU_(extract_FLU) {
 
     pi0 = (std::string(pair_) == "piplus_pi0" || std::string(pair_) == "piminus_pi0");
     f = new TFile(rootFile_.c_str(), "READ");
@@ -137,7 +137,8 @@ void AsymmetryPW::buildTerms() {
             TermDesc d{l, m, 2};
             d.name = "b_" + std::to_string(termList_.size());
             std::ostringstream ss;
-            ss << (extract_FLU_==true ? "(depolC/depolA)*" : "") << "(" << legendreString(l, m) << ")*sin(" << m << "*phi_h - " << m << "*phi_R1)";
+            ss << (extract_FLU_ == true ? "(depolC/depolA)*" : "") << "(" << legendreString(l, m) << ")*sin(" << m << "*phi_h - " << m
+               << "*phi_R1)";
             d.modulation = ss.str();
             termList_.push_back(d);
         }
@@ -147,7 +148,8 @@ void AsymmetryPW::buildTerms() {
             TermDesc d{l, m, 3};
             d.name = "b_" + std::to_string(termList_.size());
             std::ostringstream ss;
-            ss << (extract_FLU_==true ? "(depolW/depolA)*" : "") << "(" << legendreString(l, m) << ")*sin(" << (1 - m) << "*phi_h " << (m >= 0 ? "+" : "-") << std::abs(m) << "*phi_R1)";
+            ss << (extract_FLU_ == true ? "(depolW/depolA)*" : "") << "(" << legendreString(l, m) << ")*sin(" << (1 - m) << "*phi_h "
+               << (m >= 0 ? "+" : "-") << std::abs(m) << "*phi_R1)";
             d.modulation = ss.str();
             termList_.push_back(d);
         }
@@ -177,16 +179,16 @@ void AsymmetryPW::Loop() {
     RooRealVar hel("hel", "hel", -1, 1);
     RooRealVar Pol("Pol", "Pol", -1, 1);
     RooRealVar M2("M2", "M2", 0, 10); // wide range
-    RooRealVar depolA("depolA","depolA",0,1);
-    RooRealVar depolC("depolC","depolC",0,1);
-    RooRealVar depolW("depolW","depolW",0,1);
-    
+    RooRealVar depolA("depolA", "depolA", 0, 1);
+    RooRealVar depolC("depolC", "depolC", 0, 1);
+    RooRealVar depolW("depolW", "depolW", 0, 1);
+
     // create RooRealVars for every purity_N_M
     std::vector<RooRealVar*> purityVars;
     for (auto& nm : purityBranches_)
         purityVars.push_back(new RooRealVar(nm.c_str(), nm.c_str(), -10, 10));
 
-    RooArgSet obs(phi_h, phi_R1, th, Pol, hel, M2,depolA,depolC,depolW);
+    RooArgSet obs(phi_h, phi_R1, th, Pol, hel, M2, depolA, depolC, depolW);
     for (auto* pv : purityVars)
         obs.add(*pv);
 

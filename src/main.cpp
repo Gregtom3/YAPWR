@@ -17,8 +17,9 @@ int main(int argc, char** argv) {
     std::string projectDir = argv[1];
 
     // All pion pairs except pi0_pi0
-    const std::vector<std::string> pionPairs = {"piplus_piplus", "piplus_piminus", "piplus_pi0", "piminus_piminus", "piminus_pi0"};
-    
+    // const std::vector<std::string> pionPairs = {"piplus_piplus", "piplus_piminus", "piplus_pi0", "piminus_piminus", "piminus_pi0"};
+    const std::vector<std::string> pionPairs = {"piplus_piminus"};
+
     // Both run versions to check
     const std::vector<std::string> runVersions = {"Fall2018Spring2019_RGA_inbending", "Fall2018_RGA_outbending"};
 

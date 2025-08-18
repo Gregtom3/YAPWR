@@ -88,7 +88,8 @@ void ParticleMisidentificationProcessor::plotSummary(const std::string& moduleOu
     auto const& pmap = Constants::particlePalette();
 
     for (auto const& sec : sections) {
-        if (!root[sec]) continue;
+        if (!root[sec])
+            continue;
 
         // 1) Read all recon-PID counts for this true-PID section
         std::map<int, int> counts;
@@ -130,19 +131,26 @@ void ParticleMisidentificationProcessor::plotSummary(const std::string& moduleOu
             auto p = cfg.getPionPair();
             std::string tex = Constants::firstHadronLatex(p);
             for (auto const& pr : pmap) {
-                if (pr.second.texName == tex) { correctPid = pr.first; break; }
+                if (pr.second.texName == tex) {
+                    correctPid = pr.first;
+                    break;
+                }
             }
         } else if (sec == "truepid_2") {
             auto p = cfg.getPionPair();
             std::string tex = Constants::secondHadronLatex(p);
             for (auto const& pr : pmap) {
-                if (pr.second.texName == tex) { correctPid = pr.first; break; }
+                if (pr.second.texName == tex) {
+                    correctPid = pr.first;
+                    break;
+                }
             }
         }
         if (correctPid == 0) {
             // fallback: PID with the max count
-            correctPid = std::max_element(counts.begin(), counts.end(),
-                                          [](auto& a, auto& b){ return a.second < b.second; })->first;
+            correctPid = std::max_element(counts.begin(), counts.end(), [](auto& a, auto& b) {
+                             return a.second < b.second;
+                         })->first;
         }
         int correctCount = 0;
         if (auto itc = counts.find(correctPid); itc != counts.end()) {
@@ -150,14 +158,18 @@ void ParticleMisidentificationProcessor::plotSummary(const std::string& moduleOu
         }
 
         // 3) Collect top mis-IDs (exclude correctPid), top-5
-        std::vector<std::pair<int,int>> mis;
+        std::vector<std::pair<int, int>> mis;
         mis.reserve(counts.size());
         for (auto& pr : counts) {
-            if (pr.first == correctPid) continue;
+            if (pr.first == correctPid)
+                continue;
             mis.push_back({pr.first, std::max(0, pr.second)});
         }
-        std::sort(mis.begin(), mis.end(), [](auto& a, auto& b){ return a.second > b.second; });
-        if (mis.size() > 5) mis.resize(5);
+        std::sort(mis.begin(), mis.end(), [](auto& a, auto& b) {
+            return a.second > b.second;
+        });
+        if (mis.size() > 5)
+            mis.resize(5);
 
         // 4) Build pie values and labels (sanitize)
         std::vector<double> vals;
@@ -173,7 +185,8 @@ void ParticleMisidentificationProcessor::plotSummary(const std::string& moduleOu
             vals.push_back(static_cast<double>(cnt));
 
             double pct = (totalEntries > 0) ? (100.0 * cnt / static_cast<double>(totalEntries)) : 0.0;
-            if (!std::isfinite(pct) || pct < 0) pct = 0.0;
+            if (!std::isfinite(pct) || pct < 0)
+                pct = 0.0;
 
             auto it = pmap.find(pid);
             std::string name = (it != pmap.end()) ? it->second.texName : std::to_string(pid);
@@ -186,7 +199,8 @@ void ParticleMisidentificationProcessor::plotSummary(const std::string& moduleOu
         // sum check; if all zero, skip TPie and render a message
         double sum = 0.0;
         for (double v : vals) {
-            if (!std::isfinite(v) || v < 0) v = 0.0;
+            if (!std::isfinite(v) || v < 0)
+                v = 0.0;
             sum += v;
         }
 
@@ -249,7 +263,7 @@ void ParticleMisidentificationProcessor::plotSummary(const std::string& moduleOu
             const double v = (std::isfinite(vals[i]) && vals[i] >= 0) ? vals[i] : 0.0;
             pie->SetEntryVal(i, v);
             pie->SetEntryLabel(i, TString(labels[i])); // force ROOT to own a copy
-            pie->SetEntryFillColor(i, sliceColors[ std::min<size_t>(i, 5) ]);
+            pie->SetEntryFillColor(i, sliceColors[std::min<size_t>(i, 5)]);
         }
         pie->SetRadius(0.35);
         pie->Draw("nol");
@@ -274,7 +288,7 @@ void ParticleMisidentificationProcessor::plotSummary(const std::string& moduleOu
             // small color box as a swatch
             TBox* sw = new TBox(0, 0, 0, 0);
             gKeepAlive.push_back(sw);
-            const auto col = sliceColors[ std::min<size_t>(i, 5) ];
+            const auto col = sliceColors[std::min<size_t>(i, 5)];
             sw->SetFillColor(col);
             sw->SetLineColor(col);
             leg->AddEntry(sw, labels[i].c_str(), "f");
@@ -287,4 +301,3 @@ void ParticleMisidentificationProcessor::plotSummary(const std::string& moduleOu
         c->SaveAs((base + ".pdf").c_str());
     }
 }
-
