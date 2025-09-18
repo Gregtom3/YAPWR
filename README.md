@@ -23,7 +23,22 @@ This repository manages a SLURM pipeline for studying dihadron partial waves at 
 The program is intended to be used on Jefferson Lab's `ifarm` , and run using their cluster manager `slurm`. 
 
 ```bash
-./run_project.rb [--append] [--maxEntries N] [--maxFiles M] PROJECT_NAME CONFIG1 [CONFIG2 ...]
+./run_project.rb  PROJECT_NAME  RUNCARD  CONFIG1 [CONFIG2 ...]
+```
+
+`PROJECT_NAME` saves the results to `out/PROJECT_NAME`. Multiple configs can be called via wilcard. For instance,
+
+```bash
+./run_project.rb test runcards/runcard.yaml configs/*.yaml
+```
+
+Available options include
+
+```
+--append           do not overwrite existing out/<PROJECT>; skip filterTree
+--maxEntries N     pass N to filterTree as entry limit
+--maxFiles   M     only create M tree_info.yaml per config
+--slurm            submit one Slurm job per CONFIG instead of running now
 ```
 
 ## Contact

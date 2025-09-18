@@ -9,7 +9,7 @@ require 'set'
 # ------------------------------------------------------------------
 #  User-constants
 # ------------------------------------------------------------------
-VOLATILE_PROJECT   = 'pipi0-paper-pass2-v6'
+VOLATILE_PROJECT   = 'pipi0-paper-pass2-v7'
 VOLATILE_SUFFIX    = '*merged_cuts_noPmin*'
 VOLATILE_TREE_NAME = 'dihadron_cuts_noPmin'
 
@@ -175,12 +175,8 @@ config_files.each do |cfg|
                end
              end
     usable = usable.reject { |f| File.basename(File.dirname(f)) == 'pi0_pi0' }
+    usable = usable.reject { |f| File.basename(File.dirname(f)) != 'piplus_piminus' }
     usable = usable.first(options[:maxFiles]) if options[:maxFiles]&.positive?
-
-      
-    # usable = merged_files.reject do |f|
-    #   File.basename(File.dirname(f)) != 'piplus_piminus'
-    # end
 
       
     usable.each do |fp|
